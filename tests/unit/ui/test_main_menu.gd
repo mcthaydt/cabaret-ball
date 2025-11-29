@@ -1,0 +1,103 @@
+extends GutTest
+
+const MainMenuScene := preload("res://scenes/ui/main_menu.tscn")
+const M_StateStore := preload("res://scripts/state/m_state_store.gd")
+const RS_StateStoreSettings := preload("res://scripts/state/resources/rs_state_store_settings.gd")
+const RS_BootInitialState := preload("res://scripts/state/resources/rs_boot_initial_state.gd")
+const RS_MenuInitialState := preload("res://scripts/state/resources/rs_menu_initial_state.gd")
+const RS_GameplayInitialState := preload("res://scripts/state/resources/rs_gameplay_initial_state.gd")
+const RS_SceneInitialState := preload("res://scripts/state/resources/rs_scene_initial_state.gd")
+const RS_SettingsInitialState := preload("res://scripts/state/resources/rs_settings_initial_state.gd")
+const RS_NavigationInitialState := preload("res://scripts/state/resources/rs_navigation_initial_state.gd")
+const U_NavigationActions := preload("res://scripts/state/actions/u_navigation_actions.gd")
+const U_StateHandoff := preload("res://scripts/state/utils/u_state_handoff.gd")
+
+func before_each() -> void:
+	U_StateHandoff.clear_all()
+
+func after_each() -> void:
+	U_StateHandoff.clear_all()
+
+func test_main_panel_visible_by_default() -> void:
+	var store := await _create_state_store()
+	var menu := await _create_main_menu()
+	var main_panel: Control = menu.get_node("MainPanel")
+	var settings_panel: Control = menu.get_node("SettingsPanel")
+
+	assert_not_null(store, "State store should exist for main menu tests")
+	assert_true(main_panel.visible, "Main panel should be visible on load")
+	assert_false(settings_panel.visible, "Settings panel should be hidden by default")
+
+func test_dispatching_panel_change_updates_visibility() -> void:
+	var store := await _create_state_store()
+	var menu := await _create_main_menu()
+	var main_panel: Control = menu.get_node("MainPanel")
+	var settings_panel: Control = menu.get_node("SettingsPanel")
+
+	store.dispatch(U_NavigationActions.set_menu_panel(StringName("menu/settings")))
+	await wait_process_frames(2)
+
+	assert_false(main_panel.visible, "Main panel should hide when settings panel is active")
+	assert_true(settings_panel.visible, "Settings panel should show when selected via navigation state")
+
+func test_settings_button_switches_to_settings_panel() -> void:
+	var store := await _create_state_store()
+	var menu := await _create_main_menu()
+	var settings_button: Button = menu.get_node("MainPanel/SettingsButton")
+
+	settings_button.emit_signal("pressed")
+	await wait_process_frames(2)
+
+	var nav_slice: Dictionary = store.get_slice(StringName("navigation"))
+	assert_eq(nav_slice.get("active_menu_panel"), StringName("menu/settings"),
+		"Settings button should switch to the settings panel")
+
+func test_back_button_returns_to_main_panel() -> void:
+	var store := await _create_state_store()
+	var menu := await _create_main_menu()
+	var settings_button: Button = menu.get_node("MainPanel/SettingsButton")
+	var back_button: Button = menu.get_node("SettingsPanel/SettingsBackButton")
+
+	settings_button.emit_signal("pressed")
+	await wait_process_frames(2)
+	back_button.emit_signal("pressed")
+	await wait_process_frames(2)
+
+	var nav_slice: Dictionary = store.get_slice(StringName("navigation"))
+	assert_eq(nav_slice.get("active_menu_panel"), StringName("menu/main"),
+		"Back button should return to the main panel")
+
+func test_play_button_dispatches_start_game_action() -> void:
+	var store := await _create_state_store()
+	var menu := await _create_main_menu()
+	var play_button: Button = menu.get_node("MainPanel/PlayButton")
+
+	play_button.emit_signal("pressed")
+	await wait_process_frames(2)
+
+	var nav_slice: Dictionary = store.get_slice(StringName("navigation"))
+	assert_eq(nav_slice.get("shell"), StringName("gameplay"),
+		"Play button should move navigation shell to gameplay")
+	assert_eq(nav_slice.get("base_scene_id"), StringName("exterior"),
+		"Play button should target the exterior scene by default")
+
+func _create_state_store() -> M_StateStore:
+	var store := M_StateStore.new()
+	store.settings = RS_StateStoreSettings.new()
+	store.settings.enable_persistence = false
+	store.boot_initial_state = RS_BootInitialState.new()
+	store.menu_initial_state = RS_MenuInitialState.new()
+	store.navigation_initial_state = RS_NavigationInitialState.new()
+	store.gameplay_initial_state = RS_GameplayInitialState.new()
+	store.scene_initial_state = RS_SceneInitialState.new()
+	store.scene_initial_state.current_scene_id = StringName("main_menu")
+	store.settings_initial_state = RS_SettingsInitialState.new()
+	add_child_autofree(store)
+	await wait_process_frames(2)
+	return store
+
+func _create_main_menu() -> Control:
+	var menu := MainMenuScene.instantiate()
+	add_child_autofree(menu)
+	await wait_process_frames(3)
+	return menu

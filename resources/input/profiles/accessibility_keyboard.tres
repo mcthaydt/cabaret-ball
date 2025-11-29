@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="RS_InputProfile" load_steps=2 format=3 uid="uid://wlx6ji1f6duv"]
+
+[ext_resource type="Script" uid="uid://csgtnfyfr8huj" path="res://scripts/ecs/resources/rs_input_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+profile_name = "Accessibility (Keyboard/Mouse)"
+action_mappings = {
+"interact": [{
+"physical_keycode": 69,
+"type": "key"
+}],
+"jump": [{
+"physical_keycode": 32,
+"type": "key"
+}],
+"move_backward": [{
+"physical_keycode": 83,
+"type": "key"
+}],
+"move_forward": [{
+"physical_keycode": 87,
+"type": "key"
+}],
+"move_left": [{
+"physical_keycode": 65,
+"type": "key"
+}],
+"move_right": [{
+"physical_keycode": 68,
+"type": "key"
+}],
+"sprint": [{
+"physical_keycode": 4194325,
+"type": "key"
+}]
+}
+description = "Accessibility-focused: jump buffer enabled, sprint toggle mode"
+jump_buffer_time = 0.2
+sprint_toggle_mode = true

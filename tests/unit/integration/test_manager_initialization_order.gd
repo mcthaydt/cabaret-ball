@@ -1,0 +1,141 @@
+extends GutTest
+
+const M_StateStore := preload("res://scripts/state/m_state_store.gd")
+const RS_StateStoreSettings := preload("res://scripts/state/resources/rs_state_store_settings.gd")
+const RS_GameplayInitialState := preload("res://scripts/state/resources/rs_gameplay_initial_state.gd")
+const RS_SettingsInitialState := preload("res://scripts/state/resources/rs_settings_initial_state.gd")
+const M_InputProfileManager := preload("res://scripts/managers/m_input_profile_manager.gd")
+const M_InputDeviceManager := preload("res://scripts/managers/m_input_device_manager.gd")
+const U_StateHandoff := preload("res://scripts/state/utils/u_state_handoff.gd")
+const U_InputActions := preload("res://scripts/state/actions/u_input_actions.gd")
+const U_StateUtils := preload("res://scripts/state/utils/u_state_utils.gd")
+
+func before_each() -> void:
+	U_StateHandoff.clear_all()
+
+func after_each() -> void:
+	U_StateHandoff.clear_all()
+
+func test_profile_manager_initializes_when_store_ready_first() -> void:
+	var store := _spawn_state_store()
+	await _pump_frames(2)
+
+	var profile_manager := M_InputProfileManager.new()
+	add_child_autofree(profile_manager)
+	await _pump_frames(3)
+
+	assert_true(is_instance_valid(profile_manager.store_ref), "Profile manager should capture store reference when store appears first")
+	assert_eq(profile_manager.store_ref, store, "Profile manager should bind to the active store instance")
+
+func test_profile_manager_waits_until_store_added() -> void:
+	var profile_manager := M_InputProfileManager.new()
+	add_child_autofree(profile_manager)
+	await _pump_frames(3)
+
+	assert_null(profile_manager.store_ref, "Profile manager should not bind before store exists")
+
+	var store := _spawn_state_store()
+	await _pump_frames(3)
+
+	assert_eq(profile_manager.store_ref, store, "Profile manager should bind once store is added later")
+
+func test_device_manager_defers_events_until_store_ready() -> void:
+	var device_manager := M_InputDeviceManager.new()
+	add_child_autofree(device_manager)
+
+	var observed_events: Array[Dictionary] = []
+	device_manager.device_changed.connect(func(device_type: int, device_id: int, _timestamp: float) -> void:
+		observed_events.append({
+			"type": device_type,
+			"id": device_id,
+		})
+	)
+
+	var key_event := InputEventKey.new()
+	key_event.pressed = true
+	key_event.physical_keycode = Key.KEY_G
+	device_manager._input(key_event)
+	await _pump_frames(1)
+
+	assert_eq(observed_events.size(), 0, "No device events should emit before store is ready")
+
+	var store := M_StateStore.new()
+	store.settings = RS_StateStoreSettings.new()
+	store.settings.enable_history = false
+	store.settings.enable_persistence = false
+	store.gameplay_initial_state = RS_GameplayInitialState.new()
+	store.settings_initial_state = RS_SettingsInitialState.new()
+
+	var dispatched_actions: Array[Dictionary] = []
+	store.action_dispatched.connect(func(action: Dictionary) -> void:
+		dispatched_actions.append(action.duplicate(true))
+	)
+
+	add_child_autofree(store)
+	await _pump_frames(3)
+
+	assert_eq(observed_events.size(), 1, "Queued device event should flush once store is ready")
+	assert_eq(dispatched_actions.size(), 1, "Redux dispatch should occur when queued event flushes")
+	assert_eq(dispatched_actions[0].get("type", StringName()), U_InputActions.ACTION_DEVICE_CHANGED, "Flushed action should be device_changed")
+
+func test_fast_scene_transitions_do_not_break_initialization() -> void:
+	var store := _spawn_state_store()
+	var profile_manager := M_InputProfileManager.new()
+	var device_manager := M_InputDeviceManager.new()
+	add_child_autofree(profile_manager)
+	add_child_autofree(device_manager)
+	await _pump_frames(2)
+
+	profile_manager.queue_free()
+	device_manager.queue_free()
+	await _pump_frames(1)
+
+	store.queue_free()
+	await _pump_frames(1)
+
+	# Create a fresh set immediately after teardown to mimic scene reload
+	store = _spawn_state_store()
+	profile_manager = M_InputProfileManager.new()
+	device_manager = M_InputDeviceManager.new()
+	add_child_autofree(profile_manager)
+	add_child_autofree(device_manager)
+	await _pump_frames(3)
+
+	assert_true(is_instance_valid(profile_manager.store_ref), "Profile manager should rebind store after reload")
+	assert_true(is_instance_valid(store), "Store should remain valid after quick reload sequence")
+
+func test_manager_initialization_survives_stress_iterations() -> void:
+	for i in 100:
+		var store := _spawn_state_store()
+		var profile_manager := M_InputProfileManager.new()
+		var device_manager := M_InputDeviceManager.new()
+		add_child_autofree(profile_manager)
+		add_child_autofree(device_manager)
+		await _pump_frames(2)
+		assert_true(
+			is_instance_valid(profile_manager.store_ref),
+			"Profile manager should bind to store on iteration %d" % i
+		)
+		var resolved_store := U_StateUtils.get_store(device_manager)
+		assert_true(
+			is_instance_valid(resolved_store),
+			"Device manager should resolve store on iteration %d" % i
+		)
+		profile_manager.queue_free()
+		device_manager.queue_free()
+		store.queue_free()
+		await _pump_frames(1)
+
+func _spawn_state_store() -> M_StateStore:
+	var store := M_StateStore.new()
+	store.settings = RS_StateStoreSettings.new()
+	store.settings.enable_history = false
+	store.settings.enable_persistence = false
+	store.gameplay_initial_state = RS_GameplayInitialState.new()
+	store.settings_initial_state = RS_SettingsInitialState.new()
+	add_child_autofree(store)
+	return store
+
+func _pump_frames(count: int) -> void:
+	for i in count:
+		await get_tree().process_frame

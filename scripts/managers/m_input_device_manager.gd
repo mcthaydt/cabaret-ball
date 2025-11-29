@@ -1,0 +1,242 @@
+@icon("res://resources/editor_icons/manager.svg")
+extends Node
+class_name M_InputDeviceManager
+
+const U_StateUtils := preload("res://scripts/state/utils/u_state_utils.gd")
+const U_InputActions := preload("res://scripts/state/actions/u_input_actions.gd")
+const U_ECSUtils := preload("res://scripts/utils/u_ecs_utils.gd")
+
+signal device_changed(device_type: int, device_id: int, timestamp: float)
+
+enum DeviceType {
+	KEYBOARD_MOUSE,
+	GAMEPAD,
+	TOUCHSCREEN,
+}
+
+var _active_device: int = DeviceType.KEYBOARD_MOUSE
+var _active_gamepad_id: int = -1
+var _last_gamepad_device_id: int = -1
+var _gamepad_connected: bool = false
+var _last_input_time: float = 0.0
+var _state_store: M_StateStore = null
+var _joy_connection_bound: bool = false
+var _has_dispatched_initial_state: bool = false
+var _pending_device_events: Array[Dictionary] = []
+
+const DEVICE_SWITCH_DEADZONE := 0.25
+
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	set_process_input(true)
+	set_process_unhandled_input(true)
+	add_to_group("input_device_manager")
+	_register_existing_gamepads()
+	_connect_joypad_signals()
+	await _bind_state_store()
+
+func _exit_tree() -> void:
+	if is_in_group("input_device_manager"):
+		remove_from_group("input_device_manager")
+	_disconnect_joypad_signals()
+	_state_store = null
+
+func _input(event: InputEvent) -> void:
+	if event == null:
+		return
+	if event is InputEventJoypadButton:
+		var joy_button := event as InputEventJoypadButton
+		if not joy_button.pressed:
+			return
+		_handle_gamepad_input(joy_button.device)
+	elif event is InputEventJoypadMotion:
+		var joy_motion := event as InputEventJoypadMotion
+		if joy_motion.device >= 0:
+			_gamepad_connected = true
+			_last_gamepad_device_id = joy_motion.device
+		if abs(joy_motion.axis_value) < DEVICE_SWITCH_DEADZONE:
+			return
+		_handle_gamepad_input(joy_motion.device)
+	elif event is InputEventKey:
+		var key_event := event as InputEventKey
+		if key_event.echo:
+			return
+		_handle_keyboard_mouse_input()
+	elif event is InputEventMouseButton:
+		var mouse_button := event as InputEventMouseButton
+		if not mouse_button.pressed:
+			return
+		_handle_keyboard_mouse_input()
+	elif event is InputEventMouseMotion:
+		var mouse_motion := event as InputEventMouseMotion
+		if mouse_motion.relative.length_squared() <= 0.0:
+			return
+		_handle_keyboard_mouse_input()
+	elif event is InputEventScreenTouch:
+		var screen_touch := event as InputEventScreenTouch
+		if not screen_touch.pressed:
+			return
+		_handle_touch_input()
+	elif event is InputEventScreenDrag:
+		_handle_touch_input()
+
+func _unhandled_input(event: InputEvent) -> void:
+	_input(event)
+
+func get_active_device() -> int:
+	return _active_device
+
+func get_gamepad_device_id() -> int:
+	return _active_gamepad_id
+
+func get_last_gamepad_device_id() -> int:
+	return _last_gamepad_device_id
+
+func is_gamepad_connected() -> bool:
+	return _gamepad_connected
+
+func _handle_gamepad_input(device_id: int) -> void:
+	if device_id >= 0:
+		_gamepad_connected = true
+		_last_gamepad_device_id = device_id
+	_switch_device(DeviceType.GAMEPAD, device_id)
+
+func _handle_keyboard_mouse_input() -> void:
+	_switch_device(DeviceType.KEYBOARD_MOUSE, -1)
+
+func _handle_touch_input() -> void:
+	_switch_device(DeviceType.TOUCHSCREEN, -1)
+
+func _switch_device(device_type: int, device_id: int) -> void:
+	var normalized_device_id := device_id
+	if device_type == DeviceType.GAMEPAD:
+		if normalized_device_id < 0:
+			normalized_device_id = _last_gamepad_device_id
+		if normalized_device_id < 0:
+			return
+	var device_changed := true
+	if _active_device == device_type:
+		if not _has_dispatched_initial_state:
+			device_changed = true
+		elif device_type == DeviceType.GAMEPAD and normalized_device_id != _active_gamepad_id and normalized_device_id >= 0:
+			device_changed = true
+		else:
+			device_changed = false
+	var switch_timestamp := U_ECSUtils.get_current_time()
+	_last_input_time = switch_timestamp
+
+	if not device_changed:
+		return
+
+	_active_device = device_type
+	if device_type == DeviceType.GAMEPAD:
+		_active_gamepad_id = normalized_device_id
+	else:
+		_active_gamepad_id = -1
+
+	var device_id_for_emit: int = -1
+	if device_type == DeviceType.GAMEPAD:
+		device_id_for_emit = _active_gamepad_id
+
+	_dispatch_device_changed(device_type, device_id_for_emit, switch_timestamp)
+
+func _dispatch_device_changed(device_type: int, device_id: int, timestamp: float) -> void:
+	var event_payload := {
+		"device_type": device_type,
+		"device_id": device_id,
+		"timestamp": timestamp,
+	}
+	if _state_store == null or not is_instance_valid(_state_store):
+		_pending_device_events.append(event_payload)
+		return
+	_process_device_event(event_payload)
+
+func _process_device_event(event_payload: Dictionary) -> void:
+	if _state_store != null and is_instance_valid(_state_store):
+		_state_store.dispatch(
+			U_InputActions.device_changed(
+				int(event_payload.get("device_type", DeviceType.KEYBOARD_MOUSE)),
+				int(event_payload.get("device_id", -1)),
+				float(event_payload.get("timestamp", 0.0))
+			)
+		)
+	device_changed.emit(
+		int(event_payload.get("device_type", DeviceType.KEYBOARD_MOUSE)),
+		int(event_payload.get("device_id", -1)),
+		float(event_payload.get("timestamp", 0.0))
+	)
+	_has_dispatched_initial_state = true
+
+func _register_existing_gamepads() -> void:
+	var connected := Input.get_connected_joypads()
+	if connected.is_empty():
+		return
+	_gamepad_connected = true
+	_last_gamepad_device_id = int(connected[0])
+
+func _connect_joypad_signals() -> void:
+	if _joy_connection_bound:
+		return
+	var callable := Callable(self, "_on_joy_connection_changed")
+	Input.joy_connection_changed.connect(callable)
+	_joy_connection_bound = true
+
+func _disconnect_joypad_signals() -> void:
+	if not _joy_connection_bound:
+		return
+	var callable := Callable(self, "_on_joy_connection_changed")
+	if Input.joy_connection_changed.is_connected(callable):
+		Input.joy_connection_changed.disconnect(callable)
+	_joy_connection_bound = false
+
+func _bind_state_store() -> void:
+	if _state_store != null and is_instance_valid(_state_store):
+		_flush_pending_device_events()
+		return
+	var store := await U_StateUtils.await_store_ready(self)
+	if store == null:
+		push_error("M_InputDeviceManager: Timed out waiting for M_StateStore readiness")
+		return
+	_state_store = store
+	_flush_pending_device_events()
+
+func _on_joy_connection_changed(device_id: int, connected: bool) -> void:
+	if connected:
+		_gamepad_connected = true
+		_last_gamepad_device_id = device_id
+		_dispatch_connection_state(true, device_id)
+	else:
+		if device_id == _last_gamepad_device_id:
+			_last_gamepad_device_id = -1
+		if device_id == _active_gamepad_id:
+			_switch_device(DeviceType.KEYBOARD_MOUSE, -1)
+		_gamepad_connected = _evaluate_gamepad_connections()
+		_dispatch_connection_state(false, device_id)
+
+func _evaluate_gamepad_connections() -> bool:
+	var connected := Input.get_connected_joypads()
+	return not connected.is_empty()
+
+func get_last_input_time() -> float:
+	return _last_input_time
+
+func get_time_since_last_input() -> float:
+	if _last_input_time <= 0.0:
+		return -1.0
+	var current_time := U_ECSUtils.get_current_time()
+	return max(current_time - _last_input_time, 0.0)
+
+func _dispatch_connection_state(is_connected: bool, device_id: int) -> void:
+	if _state_store == null or not is_instance_valid(_state_store):
+		return
+	if is_connected:
+		_state_store.dispatch(U_InputActions.gamepad_connected(device_id))
+	else:
+		_state_store.dispatch(U_InputActions.gamepad_disconnected(device_id))
+
+func _flush_pending_device_events() -> void:
+	if _pending_device_events.is_empty():
+		return
+	for event_payload in _pending_device_events:
+		_process_device_event(event_payload)
+	_pending_device_events.clear()

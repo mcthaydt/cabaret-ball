@@ -1,0 +1,252 @@
+extends GutTest
+
+const MobileControlsScene := preload("res://scenes/ui/mobile_controls.tscn")
+const VirtualJoystick := preload("res://scripts/ui/virtual_joystick.gd")
+const VirtualButton := preload("res://scripts/ui/virtual_button.gd")
+const S_TouchscreenSystem := preload("res://scripts/ecs/systems/s_touchscreen_system.gd")
+const M_ECSManager := preload("res://scripts/managers/m_ecs_manager.gd")
+const C_InputComponent := preload("res://scripts/ecs/components/c_input_component.gd")
+const M_InputDeviceManager := preload("res://scripts/managers/m_input_device_manager.gd")
+const M_StateStore := preload("res://scripts/state/m_state_store.gd")
+const RS_StateStoreSettings := preload("res://scripts/state/resources/rs_state_store_settings.gd")
+const RS_BootInitialState := preload("res://scripts/state/resources/rs_boot_initial_state.gd")
+const RS_MenuInitialState := preload("res://scripts/state/resources/rs_menu_initial_state.gd")
+const RS_GameplayInitialState := preload("res://scripts/state/resources/rs_gameplay_initial_state.gd")
+const RS_SceneInitialState := preload("res://scripts/state/resources/rs_scene_initial_state.gd")
+const RS_SettingsInitialState := preload("res://scripts/state/resources/rs_settings_initial_state.gd")
+const RS_DebugInitialState := preload("res://scripts/state/resources/rs_debug_initial_state.gd")
+const RS_NavigationInitialState := preload("res://scripts/state/resources/rs_navigation_initial_state.gd")
+const U_InputActions := preload("res://scripts/state/actions/u_input_actions.gd")
+const U_SceneActions := preload("res://scripts/state/actions/u_scene_actions.gd")
+const U_NavigationActions := preload("res://scripts/state/actions/u_navigation_actions.gd")
+const U_InputSelectors := preload("res://scripts/state/selectors/u_input_selectors.gd")
+const U_StateHandoff := preload("res://scripts/state/utils/u_state_handoff.gd")
+
+func before_each() -> void:
+	U_StateHandoff.clear_all()
+
+func after_each() -> void:
+	U_StateHandoff.clear_all()
+
+func test_touchscreen_flow_updates_state_and_component() -> void:
+	var ctx := await _setup_environment()
+	var store: M_StateStore = ctx["store"]
+	store.dispatch(U_InputActions.device_changed(M_InputDeviceManager.DeviceType.TOUCHSCREEN, -1))
+	await _await_frames(1)
+
+	var joystick: VirtualJoystick = ctx["joystick"]
+	_press_joystick(joystick, Vector2.ZERO, Vector2(joystick.joystick_radius, 0.0))
+
+	var jump_button: VirtualButton = ctx["jump_button"]
+	_press_button(jump_button)
+
+	var manager: M_ECSManager = ctx["ecs_manager"]
+	manager._physics_process(0.016)
+
+	var component: C_InputComponent = ctx["component"]
+	assert_almost_eq(component.move_vector.x, 1.0, 0.01,
+		"Joystick drag should set move_vector.x to full right")
+	assert_true(component.jump_pressed, "Jump button press should set jump_pressed on component")
+	assert_eq(component.device_type, M_InputDeviceManager.DeviceType.TOUCHSCREEN,
+		"Component should record touchscreen device type")
+
+	var state := store.get_state()
+	var move_input: Vector2 = U_InputSelectors.get_move_input(state)
+	assert_almost_eq(move_input.x, 1.0, 0.01, "Store should capture move input from touchscreen controls")
+	assert_true(U_InputSelectors.is_jump_pressed(state), "Store should capture jump state from touchscreen controls")
+
+func test_controls_hide_and_processing_stops_on_device_change_and_transition() -> void:
+	var ctx := await _setup_environment()
+	var store: M_StateStore = ctx["store"]
+	store.dispatch(U_InputActions.device_changed(M_InputDeviceManager.DeviceType.TOUCHSCREEN, -1))
+	await _await_state_update(store)
+
+	var joystick: VirtualJoystick = ctx["joystick"]
+	_press_joystick(joystick, Vector2.ZERO, Vector2(joystick.joystick_radius, 0.0))
+
+	var manager: M_ECSManager = ctx["ecs_manager"]
+	manager._physics_process(0.016)
+
+	var component: C_InputComponent = ctx["component"]
+	var prior_vector: Vector2 = component.move_vector
+
+	store.dispatch(U_InputActions.device_changed(M_InputDeviceManager.DeviceType.GAMEPAD, 0))
+	await _await_state_update(store)
+
+	var controls: MobileControls = ctx["controls"]
+	assert_false(controls.visible, "MobileControls should hide when active device is not touchscreen")
+
+	_press_joystick(joystick, Vector2.ZERO, Vector2(0.0, -joystick.joystick_radius))
+	manager._physics_process(0.016)
+	assert_vector_almost_eq(component.move_vector, prior_vector, 0.001,
+		"Touchscreen input should not update component when device is gamepad")
+
+	store.dispatch(U_InputActions.device_changed(M_InputDeviceManager.DeviceType.TOUCHSCREEN, -1))
+	await _await_state_update(store)
+	assert_true(controls.visible, "MobileControls should reappear when touchscreen becomes active")
+
+	store.dispatch(U_SceneActions.transition_started(StringName("gameplay_base"), "fade"))
+	await _await_state_update(store)
+	assert_false(controls.visible, "MobileControls should hide during scene transitions")
+
+	store.dispatch(U_SceneActions.transition_completed(StringName("gameplay_base")))
+	await _await_state_update(store)
+	assert_true(controls.visible, "MobileControls should show after transition completes")
+
+func test_virtual_control_positions_persist_via_state_handoff() -> void:
+	var store: M_StateStore = await _create_state_store()
+	var controls: MobileControls = await _create_controls()
+	var joystick: VirtualJoystick = controls.get_node_or_null("Controls/VirtualJoystick") as VirtualJoystick
+	assert_not_null(joystick)
+	var jump_button: VirtualButton = _find_button(controls.get_buttons(), StringName("jump"))
+	assert_not_null(jump_button)
+
+	var custom_joystick := Vector2(180, 320)
+	var custom_jump := Vector2(640, 410)
+
+	store.dispatch(U_InputActions.save_virtual_control_position("virtual_joystick", custom_joystick))
+	store.dispatch(U_InputActions.save_virtual_control_position("jump", custom_jump))
+	await _await_frames(1)
+
+	var saved_settings: Dictionary = U_InputSelectors.get_touchscreen_settings(store.get_state())
+	var saved_custom_positions: Dictionary = saved_settings.get("custom_button_positions", {})
+	assert_vector_almost_eq(saved_settings.get("custom_joystick_position", Vector2.ZERO), custom_joystick, 0.01,
+		"Custom joystick position should persist in state before handoff")
+	var saved_jump_position: Variant = saved_custom_positions.get("jump")
+	assert_true(saved_jump_position is Vector2, "Jump button position should be stored as Vector2 in state")
+	assert_vector_almost_eq(saved_jump_position, custom_jump, 0.01,
+		"Jump button position should persist in state before handoff")
+
+	store.call("_preserve_to_handoff")
+	await _await_frames(1)
+
+	controls.queue_free()
+	store.queue_free()
+	await _await_frames(2)
+
+	var restored_store: M_StateStore = await _create_state_store()
+	var restored_controls: MobileControls = await _create_controls()
+	var restored_joystick: VirtualJoystick = restored_controls.get_node_or_null("Controls/VirtualJoystick") as VirtualJoystick
+	var restored_jump: VirtualButton = _find_button(restored_controls.get_buttons(), StringName("jump"))
+	var viewport_size: Vector2 = restored_controls.get_viewport().get_visible_rect().size
+
+	assert_not_null(restored_joystick, "Restored MobileControls should have a joystick instance")
+	assert_not_null(restored_jump, "Restored MobileControls should rebuild jump button")
+	var clamped_restored_joystick := _expected_clamped_position(custom_joystick, restored_joystick, viewport_size)
+	var clamped_restored_jump := _expected_clamped_position(custom_jump, restored_jump, viewport_size)
+	assert_vector_almost_eq(restored_joystick.position, clamped_restored_joystick, 0.01,
+		"Joystick position should restore from saved touchscreen settings (clamped to viewport)")
+	assert_vector_almost_eq(restored_jump.position, clamped_restored_jump, 0.01,
+		"Button position should restore from saved touchscreen settings (clamped to viewport)")
+
+func _setup_environment() -> Dictionary:
+	var store := await _create_state_store()
+	store.dispatch(U_NavigationActions.start_game(StringName("gameplay_base")))
+	await _await_state_update(store)
+
+	var ecs_manager := M_ECSManager.new()
+	add_child_autofree(ecs_manager)
+	await _await_frames(2)
+
+	var entity := Node3D.new()
+	entity.name = "E_TouchscreenIntegration"
+	ecs_manager.add_child(entity)
+	autofree(entity)
+	await _await_frames(1)
+
+	var component := C_InputComponent.new()
+	entity.add_child(component)
+	await _await_frames(1)
+
+	var system := S_TouchscreenSystem.new()
+	system.force_enable = true
+	ecs_manager.add_child(system)
+	await _await_frames(2)
+
+	var controls := await _create_controls()
+	var joystick := controls.get_node_or_null("Controls/VirtualJoystick") as VirtualJoystick
+	var buttons: Array = controls.get_buttons()
+	var jump_button := _find_button(buttons, StringName("jump"))
+
+	return {
+		"store": store,
+		"ecs_manager": ecs_manager,
+		"component": component,
+		"system": system,
+		"controls": controls,
+		"joystick": joystick,
+		"jump_button": jump_button,
+	}
+
+func _create_state_store() -> M_StateStore:
+	var store := M_StateStore.new()
+	store.settings = RS_StateStoreSettings.new()
+	store.settings.enable_persistence = false
+	store.boot_initial_state = RS_BootInitialState.new()
+	store.menu_initial_state = RS_MenuInitialState.new()
+	store.gameplay_initial_state = RS_GameplayInitialState.new()
+	store.scene_initial_state = RS_SceneInitialState.new()
+	store.scene_initial_state.current_scene_id = StringName("gameplay_base")
+	store.settings_initial_state = RS_SettingsInitialState.new()
+	store.debug_initial_state = RS_DebugInitialState.new()
+	store.navigation_initial_state = RS_NavigationInitialState.new()
+	add_child_autofree(store)
+	await _await_frames(2)
+	return store
+
+func _create_controls() -> MobileControls:
+	var controls := MobileControlsScene.instantiate() as MobileControls
+	controls.force_enable = true
+	add_child_autofree(controls)
+	await _await_frames(2)
+	return controls
+
+func _press_joystick(joystick: VirtualJoystick, start: Vector2, end: Vector2) -> void:
+	if joystick == null:
+		return
+	var touch := InputEventScreenTouch.new()
+	touch.index = 0
+	touch.pressed = true
+	touch.position = start
+	joystick._input(touch)
+
+	var drag := InputEventScreenDrag.new()
+	drag.index = 0
+	drag.position = end
+	joystick._input(drag)
+
+func _press_button(button: VirtualButton) -> void:
+	if button == null:
+		return
+	var touch := InputEventScreenTouch.new()
+	touch.index = 1
+	touch.pressed = true
+	touch.position = button.get_global_rect().position + (button.get_global_rect().size * 0.5)
+	button._input(touch)
+
+func _find_button(buttons: Array, action: StringName) -> VirtualButton:
+	for button in buttons:
+		if button is VirtualButton and (button as VirtualButton).action == action:
+			return button as VirtualButton
+	return null
+
+func assert_vector_almost_eq(a: Vector2, b: Vector2, tolerance: float, message: String = "") -> void:
+	assert_almost_eq(a.x, b.x, tolerance, message + " (x)")
+	assert_almost_eq(a.y, b.y, tolerance, message + " (y)")
+
+func _expected_clamped_position(target: Vector2, control: Control, viewport_size: Vector2) -> Vector2:
+	if control == null:
+		return target
+	var scaled_size: Vector2 = control.size * control.scale
+	return Vector2(
+		clampf(target.x, 0.0, max(viewport_size.x - scaled_size.x, 0.0)),
+		clampf(target.y, 0.0, max(viewport_size.y - scaled_size.y, 0.0))
+	)
+
+func _await_frames(count: int) -> void:
+	for _i in count:
+		await get_tree().process_frame
+
+func _await_state_update(_store: M_StateStore) -> void:
+	# Subscriptions fire synchronously during dispatch, so just wait one frame for rendering
+	await get_tree().process_frame

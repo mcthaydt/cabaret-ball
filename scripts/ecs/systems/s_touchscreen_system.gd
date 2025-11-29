@@ -1,0 +1,152 @@
+@icon("res://resources/editor_icons/system.svg")
+extends BaseECSSystem
+class_name S_TouchscreenSystem
+
+## Processes virtual joystick/buttons on mobile and updates input components.
+## Guards against device races and supports an emergency disable flag.
+
+const INPUT_TYPE := StringName("C_InputComponent")
+const ACTION_MOVE_STRENGTH := StringName("move")
+const ACTION_LOOK_STRENGTH := StringName("look")
+const M_InputDeviceManager := preload("res://scripts/managers/m_input_device_manager.gd")
+const U_StateUtils := preload("res://scripts/state/utils/u_state_utils.gd")
+const U_InputSelectors := preload("res://scripts/state/selectors/u_input_selectors.gd")
+const U_InputActions := preload("res://scripts/state/actions/u_input_actions.gd")
+const U_DebugSelectors := preload("res://scripts/state/selectors/u_debug_selectors.gd")
+const C_InputComponent := preload("res://scripts/ecs/components/c_input_component.gd")
+const VirtualJoystick := preload("res://scripts/ui/virtual_joystick.gd")
+const VirtualButton := preload("res://scripts/ui/virtual_button.gd")
+const MobileControls := preload("res://scripts/ui/mobile_controls.gd")
+
+@export var force_enable: bool = false
+@export var emulate_mobile_override: bool = false
+
+var _state_store: M_StateStore = null
+var _mobile_controls: MobileControls = null
+var _joystick: VirtualJoystick = null
+var _button_map: Dictionary = {}
+var _last_jump_pressed: bool = false
+
+func on_configured() -> void:
+	_ensure_state_store_ready()
+
+func process_tick(_delta: float) -> void:
+	if not _should_process():
+		return
+
+	_ensure_state_store_ready()
+	var store := _get_state_store()
+	if store == null:
+		return
+
+	var state := store.get_state()
+	if _is_touchscreen_disabled(state):
+		return
+
+	var active_device: int = U_InputSelectors.get_active_device_type(state)
+	if active_device != M_InputDeviceManager.DeviceType.TOUCHSCREEN:
+		return  # Guard against race where device switched this frame
+
+	if not _ensure_controls_ready():
+		return
+
+	var move_vector := _get_move_vector()
+	var jump_pressed := _get_button_pressed(StringName("jump"))
+	var sprint_pressed := _get_button_pressed(StringName("sprint"))
+	var jump_just_pressed := jump_pressed and not _last_jump_pressed
+
+	_dispatch_state(store, move_vector, jump_pressed, jump_just_pressed, sprint_pressed)
+	_update_components(move_vector, jump_just_pressed, sprint_pressed)
+
+	_last_jump_pressed = jump_pressed
+
+func _should_process() -> bool:
+	if force_enable:
+		return true
+	if OS.has_feature("mobile"):
+		return true
+	return _is_emulate_mode()
+
+func _is_emulate_mode() -> bool:
+	if emulate_mobile_override:
+		return true
+	var args: PackedStringArray = OS.get_cmdline_args()
+	return args.has("--emulate-mobile")
+
+func _ensure_state_store_ready() -> void:
+	if _state_store != null and is_instance_valid(_state_store):
+		return
+	_state_store = U_StateUtils.get_store(self)
+
+func _get_state_store() -> M_StateStore:
+	if _state_store == null or not is_instance_valid(_state_store):
+		_state_store = null
+		return null
+	return _state_store
+
+func _ensure_controls_ready() -> bool:
+	if _mobile_controls == null or not is_instance_valid(_mobile_controls):
+		_mobile_controls = get_tree().get_first_node_in_group("mobile_controls") as MobileControls
+		_button_map.clear()
+		_joystick = null
+		if _mobile_controls != null and is_instance_valid(_mobile_controls):
+			_joystick = _mobile_controls.get_node_or_null("Controls/VirtualJoystick") as VirtualJoystick
+			_cache_buttons(_mobile_controls.get_buttons())
+
+	if _mobile_controls == null or not is_instance_valid(_mobile_controls):
+		return false
+
+	if _joystick == null or not is_instance_valid(_joystick):
+		_joystick = _mobile_controls.get_node_or_null("Controls/VirtualJoystick") as VirtualJoystick
+
+	if _button_map.is_empty():
+		_cache_buttons(_mobile_controls.get_buttons())
+
+	return _joystick != null and is_instance_valid(_joystick)
+
+func _cache_buttons(buttons: Array) -> void:
+	_button_map.clear()
+	for button in buttons:
+		if not (button is VirtualButton):
+			continue
+		var vb := button as VirtualButton
+		_button_map[String(vb.action)] = vb
+
+func _get_move_vector() -> Vector2:
+	if _joystick == null or not is_instance_valid(_joystick):
+		return Vector2.ZERO
+	return _joystick.get_vector()
+
+func _get_button_pressed(action: StringName) -> bool:
+	var button: VirtualButton = _button_map.get(String(action))
+	if button == null or not is_instance_valid(button):
+		return false
+	return button.is_pressed()
+
+func _dispatch_state(store: M_StateStore, move_vector: Vector2, jump_pressed: bool, jump_just_pressed: bool, sprint_pressed: bool) -> void:
+	if store == null or not is_instance_valid(store):
+		return
+	store.dispatch(U_InputActions.update_move_input(move_vector))
+	store.dispatch(U_InputActions.update_jump_state(jump_pressed, jump_just_pressed))
+	store.dispatch(U_InputActions.update_sprint_state(sprint_pressed))
+
+func _update_components(move_vector: Vector2, jump_just_pressed: bool, sprint_pressed: bool) -> void:
+	var components := get_components(INPUT_TYPE)
+	var move_strength := clampf(move_vector.length(), 0.0, 1.0)
+
+	for entry in components:
+		var input_component := entry as C_InputComponent
+		if input_component == null:
+			continue
+
+		input_component.set_move_vector(move_vector)
+		input_component.set_sprint_pressed(sprint_pressed)
+		if jump_just_pressed:
+			input_component.set_jump_pressed(true)
+		input_component.set_device_type(M_InputDeviceManager.DeviceType.TOUCHSCREEN)
+		input_component.clear_action_strengths()
+		input_component.set_action_strength(ACTION_MOVE_STRENGTH, move_strength)
+		input_component.set_action_strength(ACTION_LOOK_STRENGTH, 0.0)
+
+func _is_touchscreen_disabled(state: Dictionary) -> bool:
+	return U_DebugSelectors.is_touchscreen_disabled(state)
