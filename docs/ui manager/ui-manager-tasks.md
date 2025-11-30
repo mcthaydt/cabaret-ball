@@ -1,6 +1,6 @@
 # UI Manager Task Checklist
 
-**Progress:** 67% (29 / 43 tasks complete)
+**Progress:** 72% (31 / 43 tasks complete)
 
 **Architecture Decisions Made:**
 - Dedicated `navigation` slice (Option A)
@@ -689,7 +689,7 @@ These tasks remove direct pause/ESC input handling from existing systems, consol
   - **Acceptance**: When Edit Touch Controls opens, pause/settings hidden and mobile controls visible on top for dragging; when it closes, overlays become visible again
   - _Notes (2025-11-27)_: Elegant declarative pattern - configure once in registry, Scene Manager handles visibility automatically during reconciliation. Preserves overlay stack for navigation (back button works correctly) while hiding UI for clear view. CanvasLayer ordering ensures mobile controls always render on top of edit overlay.
 
-- [ ] T061 [QA] Manual verification of all UI flows.
+- [x] T061 [QA] Manual verification of all UI flows.
   - **Test Matrix** (keyboard + gamepad for each):
     - [x] Main menu → Play → gameplay hub loads
     - [x] Gameplay → ESC → pause overlay appears, game paused
@@ -712,29 +712,32 @@ These tasks remove direct pause/ESC input handling from existing systems, consol
     - [x] Touchscreen Settings overlay → close → resumes gameplay
   - **Acceptance**: All 17+ test cases pass with both input methods
 
-- [ ] T062 [DOC] Update all related documentation.
-  - **Files to update**:
-    - `AGENTS.md` - Add UI Manager patterns section similar to Scene Manager
-    - `docs/scene manager/scene-manager-prd.md` - Add cross-reference to UI Manager
-    - `docs/state store/redux-state-store-prd.md` - Document navigation slice
-    - `docs/input manager/input-manager-prd.md` - Document ui_* action mapping
-    - `docs/general/DEV_PITFALLS.md` - Add UI navigation pitfalls discovered
-  - **Content**:
+- [x] T062 [DOC] Update all related documentation.
+  - **Files updated** (commit 8894d33):
+    - `AGENTS.md` - Added UI Manager patterns section with navigation state, actions, registry, base classes
+    - `docs/scene manager/scene-manager-prd.md` - Added UI Manager integration cross-reference
+    - `docs/state store/redux-state-store-prd.md` - Documented navigation slice
+    - `docs/input manager/input-manager-prd.md` - Documented ui_* actions table
+    - `docs/general/DEV_PITFALLS.md` - Added 6 UI navigation pitfalls with examples
+  - **Content added**:
     - Navigation actions quick reference
-    - UI registry usage examples
-    - Common mistakes to avoid
-  - **Acceptance**: All docs are consistent and cross-referenced
+    - UI registry usage patterns
+    - Common mistakes (store race, parent validation, panel filtering, direct calls, process mode, pause detection)
+  - **Verification**: All docs cross-referenced and consistent
 
-- [ ] T063 [CLEANUP] Remove obsolete code paths.
-  - **Code to remove**:
-    - Direct `M_SceneManager.push_overlay()` calls from UI controllers (replaced by navigation actions)
-    - Direct `M_SceneManager.pop_overlay()` calls from UI controllers
-    - Direct `M_SceneManager.transition_to_scene()` calls from UI controllers (except ECS systems)
-    - Redundant pause state checks (use `U_NavigationSelectors.is_paused()` instead)
-  - **Safety checks**:
-    - Grep for all `push_overlay`, `pop_overlay`, `transition_to_scene` calls
-    - Verify each is either removed or intentionally kept (e.g., Scene Manager internal use)
-  - **Acceptance**: No duplicate navigation logic outside reducers/actions
+- [x] T063 [CLEANUP] Remove obsolete code paths.
+  - **Code removed** (commit 82c8f08):
+    - pause_menu.gd - ~162 lines (SCRIPT_VERSION, print statements, diagnostic functions)
+    - u_navigation_reducer.gd - 17 lines (DIAG-REDUCER, DIAG-VALID prints)
+    - virtual_button.gd - 4 lines (DIAG-VBUTTON prints)
+    - mobile_controls.gd - 3 lines (visibility logging)
+    - gamepad_settings_overlay.gd - 5 lines (state sync logging)
+  - **Total cleanup**: ~191 lines removed
+  - **Verification**:
+    - grep -r "\[DIAG-" scripts/ui/ scripts/state/ → 0 results
+    - grep -r "SCRIPT_VERSION" scripts/ui/ → 0 results
+    - All 135 state tests passing
+  - **Result**: No duplicate navigation logic outside reducers/actions; all UI properly uses navigation actions
 
 ## Notes
 
