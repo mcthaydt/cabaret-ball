@@ -71,11 +71,6 @@ func _on_state_changed(_action: Dictionary, state: Dictionary) -> void:
 		if not is_equal_approx(_vibration_slider.value, vibration_from_state):
 			overridden_fields.append("vibration_intensity")
 
-		if not overridden_fields.is_empty() and action_type != U_InputActions.ACTION_UPDATE_GAMEPAD_DEADZONE and action_type != U_InputActions.ACTION_TOGGLE_VIBRATION and action_type != U_InputActions.ACTION_SET_VIBRATION_INTENSITY and action_type != StringName(""):
-			print("[GamepadSettingsOverlay] State action %s overriding local slider edits: %s" % [
-				str(action_type),
-				", ".join(overridden_fields)
-			])
 	_updating_from_state = true
 	if not settings.is_empty():
 		_left_slider.value = float(settings.get("left_stick_deadzone", _left_slider.value))

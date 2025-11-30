@@ -212,17 +212,13 @@ func _bridge_input_action_released(action_name: StringName) -> void:
 func _bridge_pause_pressed() -> void:
 	var store := _get_store_instance()
 	if store == null:
-		print("[DIAG-VBUTTON] ERROR: Store is null")
 		return
 
 	var nav_slice := store.get_slice(StringName("navigation"))
-	print("[DIAG-VBUTTON] Pause pressed: shell=", nav_slice.get("shell"), " stack=", nav_slice.get("overlay_stack"))
 
 	if U_NavigationSelectors.is_paused(nav_slice):
-		print("[DIAG-VBUTTON] Dispatching close_pause()")
 		store.dispatch(U_NavigationActions.close_pause())
 	else:
-		print("[DIAG-VBUTTON] Dispatching open_pause()")
 		store.dispatch(U_NavigationActions.open_pause())
 
 func _get_parent_local_position(global_point: Vector2) -> Vector2:

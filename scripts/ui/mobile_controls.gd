@@ -275,7 +275,6 @@ func _update_navigation_state(state: Dictionary) -> void:
 	_is_edit_overlay_active = U_NavigationSelectors.get_top_overlay_id(nav_state) == EDIT_OVERLAY_ID
 	if previous_overlay_active != _has_overlay_active:
 		_overlay_input_logged = false
-		print("[MOBILE_CONTROLS] Overlay state changed: has_overlay=", _has_overlay_active, " stack=", stack)
 
 	var scene_state: Dictionary = state.get("scene", {})
 	_is_transitioning = bool(scene_state.get("is_transitioning", false))
@@ -290,11 +289,6 @@ func _update_visibility() -> void:
 	var shell_allows: bool = (_current_shell == SHELL_GAMEPLAY) or (force_enable and _current_shell == StringName(""))
 	var overlay_allows: bool = not _has_overlay_active or _is_edit_overlay_active
 	var should_show: bool = device_allows and shell_allows and not _is_transitioning and overlay_allows
-
-	# Only log visibility changes, not every check
-	if visible != should_show:
-		print("[MOBILE_CONTROLS] Visibility change: ", visible, " → ", should_show)
-		print("[MOBILE_CONTROLS]   device_allows=", device_allows, " shell_allows=", shell_allows, " overlay_allows=", overlay_allows, " transitioning=", _is_transitioning)
 
 	visible = should_show
 
