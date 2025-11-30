@@ -24,7 +24,6 @@ const SHELL_GAMEPLAY := StringName("gameplay")
 const EDIT_OVERLAY_ID := StringName("edit_touch_controls")
 
 var _state_store: M_StateStore = null
-var _device_manager: M_InputDeviceManager = null
 var _unsubscribe: Callable = Callable()
 var _controls_root: Control = null
 var _default_touchscreen_settings: RS_TouchscreenSettings = RS_TouchscreenSettings.new()
@@ -70,11 +69,6 @@ func _ready() -> void:
 	if _unsubscribe == Callable() or not _unsubscribe.is_valid():
 		_unsubscribe = _state_store.subscribe(_on_state_changed)
 
-	_device_manager = _get_input_device_manager()
-	if _device_manager != null:
-		_device_manager.device_changed.connect(_on_device_changed)
-		_device_type = _device_manager.get_active_device()
-
 	var initial_state := _state_store.get_state()
 	_device_type = _normalize_device_type(U_InputSelectors.get_active_device_type(initial_state))
 
@@ -86,9 +80,6 @@ func _exit_tree() -> void:
 	if _unsubscribe != Callable() and _unsubscribe.is_valid():
 		_unsubscribe.call()
 		_unsubscribe = Callable()
-	if _device_manager != null and _device_manager.device_changed.is_connected(_on_device_changed):
-		_device_manager.device_changed.disconnect(_on_device_changed)
-	_device_manager = null
 	_state_store = null
 	_is_fading = false
 	_fade_elapsed = 0.0
@@ -105,12 +96,6 @@ func _is_emulate_mode() -> bool:
 		return true
 	var args: PackedStringArray = OS.get_cmdline_args()
 	return args.has("--emulate-mobile")
-
-func _get_input_device_manager() -> M_InputDeviceManager:
-	var managers := get_tree().get_first_node_in_group("input_device_manager")
-	if managers is M_InputDeviceManager:
-		return managers as M_InputDeviceManager
-	return null
 
 func _load_touchscreen_profile() -> RS_InputProfile:
 	var resource := ResourceLoader.load(DEFAULT_TOUCHSCREEN_PROFILE_PATH)
@@ -291,10 +276,6 @@ func _update_visibility() -> void:
 	var should_show: bool = device_allows and shell_allows and not _is_transitioning and overlay_allows
 
 	visible = should_show
-
-func _on_device_changed(device_type: int, _device_id: int, _timestamp: float) -> void:
-	_device_type = device_type
-	_update_visibility()
 
 func _on_state_changed(_action: Dictionary, state: Dictionary) -> void:
 	if state == null:

@@ -5,6 +5,7 @@ class_name M_InputDeviceManager
 const U_StateUtils := preload("res://scripts/state/utils/u_state_utils.gd")
 const U_InputActions := preload("res://scripts/state/actions/u_input_actions.gd")
 const U_ECSUtils := preload("res://scripts/utils/u_ecs_utils.gd")
+const U_NavigationSelectors := preload("res://scripts/state/selectors/u_navigation_selectors.gd")
 
 signal device_changed(device_type: int, device_id: int, timestamp: float)
 
@@ -23,8 +24,12 @@ var _state_store: M_StateStore = null
 var _joy_connection_bound: bool = false
 var _has_dispatched_initial_state: bool = false
 var _pending_device_events: Array[Dictionary] = []
+var _last_gamepad_signal_time: float = 0.0
+
+@export var emulate_mobile_disconnect_guard: bool = false
 
 const DEVICE_SWITCH_DEADZONE := 0.25
+const DISCONNECT_GRACE_SECONDS := 1.0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -61,17 +66,17 @@ func _input(event: InputEvent) -> void:
 		var key_event := event as InputEventKey
 		if key_event.echo:
 			return
-		_handle_keyboard_mouse_input()
+		_handle_keyboard_mouse_input(key_event)
 	elif event is InputEventMouseButton:
 		var mouse_button := event as InputEventMouseButton
 		if not mouse_button.pressed:
 			return
-		_handle_keyboard_mouse_input()
+		_handle_keyboard_mouse_input(mouse_button)
 	elif event is InputEventMouseMotion:
 		var mouse_motion := event as InputEventMouseMotion
 		if mouse_motion.relative.length_squared() <= 0.0:
 			return
-		_handle_keyboard_mouse_input()
+		_handle_keyboard_mouse_input(mouse_motion)
 	elif event is InputEventScreenTouch:
 		var screen_touch := event as InputEventScreenTouch
 		if not screen_touch.pressed:
@@ -99,9 +104,10 @@ func _handle_gamepad_input(device_id: int) -> void:
 	if device_id >= 0:
 		_gamepad_connected = true
 		_last_gamepad_device_id = device_id
+		_last_gamepad_signal_time = U_ECSUtils.get_current_time()
 	_switch_device(DeviceType.GAMEPAD, device_id)
 
-func _handle_keyboard_mouse_input() -> void:
+func _handle_keyboard_mouse_input(event: InputEvent = null) -> void:
 	_switch_device(DeviceType.KEYBOARD_MOUSE, -1)
 
 func _handle_touch_input() -> void:
@@ -204,11 +210,17 @@ func _on_joy_connection_changed(device_id: int, connected: bool) -> void:
 	if connected:
 		_gamepad_connected = true
 		_last_gamepad_device_id = device_id
+		_last_gamepad_signal_time = U_ECSUtils.get_current_time()
 		_dispatch_connection_state(true, device_id)
 	else:
 		if device_id == _last_gamepad_device_id:
 			_last_gamepad_device_id = -1
-		if device_id == _active_gamepad_id:
+		var should_switch := device_id == _active_gamepad_id
+		if should_switch and _should_ignore_gamepad_disconnect():
+			should_switch = false
+		elif should_switch and _should_guard_disconnect_by_grace_period():
+			should_switch = false
+		if should_switch and device_id == _active_gamepad_id:
 			_switch_device(DeviceType.KEYBOARD_MOUSE, -1)
 		_gamepad_connected = _evaluate_gamepad_connections()
 		_dispatch_connection_state(false, device_id)
@@ -240,3 +252,31 @@ func _flush_pending_device_events() -> void:
 	for event_payload in _pending_device_events:
 		_process_device_event(event_payload)
 	_pending_device_events.clear()
+
+func _should_ignore_gamepad_disconnect() -> bool:
+	if _active_device != DeviceType.GAMEPAD:
+		return false
+	if get_tree().paused:
+		return true
+	return _has_overlay_active()
+
+func _has_overlay_active() -> bool:
+	if _state_store == null or not is_instance_valid(_state_store):
+		return false
+	var nav_state: Dictionary = _state_store.get_state().get("navigation", {})
+	return not U_NavigationSelectors.get_overlay_stack(nav_state).is_empty()
+
+func _should_guard_disconnect_by_grace_period() -> bool:
+	if not _is_mobile_context():
+		return false
+	if _active_device != DeviceType.GAMEPAD:
+		return false
+	var now := U_ECSUtils.get_current_time()
+	if _last_gamepad_signal_time <= 0.0:
+		return false
+	return (now - _last_gamepad_signal_time) <= DISCONNECT_GRACE_SECONDS
+
+func _is_mobile_context() -> bool:
+	if OS.has_feature("mobile"):
+		return true
+	return emulate_mobile_disconnect_guard

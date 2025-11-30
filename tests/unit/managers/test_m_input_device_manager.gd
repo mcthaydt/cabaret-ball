@@ -5,8 +5,10 @@ const M_StateStore := preload("res://scripts/state/m_state_store.gd")
 const RS_StateStoreSettings := preload("res://scripts/state/resources/rs_state_store_settings.gd")
 const RS_GameplayInitialState := preload("res://scripts/state/resources/rs_gameplay_initial_state.gd")
 const RS_SettingsInitialState := preload("res://scripts/state/resources/rs_settings_initial_state.gd")
+const RS_NavigationInitialState := preload("res://scripts/state/resources/rs_navigation_initial_state.gd")
 const U_StateHandoff := preload("res://scripts/state/utils/u_state_handoff.gd")
 const U_InputActions := preload("res://scripts/state/actions/u_input_actions.gd")
+const U_NavigationActions := preload("res://scripts/state/actions/u_navigation_actions.gd")
 
 var _store: M_StateStore
 var _manager: M_InputDeviceManager
@@ -24,6 +26,7 @@ func before_each() -> void:
 	_store.settings.enable_history = false
 	_store.gameplay_initial_state = RS_GameplayInitialState.new()
 	_store.settings_initial_state = RS_SettingsInitialState.new()
+	_store.navigation_initial_state = RS_NavigationInitialState.new()
 	add_child_autofree(_store)
 	await get_tree().process_frame
 
@@ -233,13 +236,41 @@ func test_touch_event_switches_to_touchscreen_without_gamepad_state() -> void:
 	assert_eq(event.get("device_id"), -1)
 	assert_gt(float(event.get("timestamp", 0.0)), 0.0)
 
-	assert_eq(_dispatched_actions.size(), 1)
-	var action := _dispatched_actions[0]
-	assert_eq(action.get("type"), U_InputActions.ACTION_DEVICE_CHANGED)
-	var payload: Dictionary = action.get("payload", {})
-	assert_eq(int(payload.get("device_type", -1)), M_InputDeviceManager.DeviceType.TOUCHSCREEN)
-	assert_eq(int(payload.get("device_id", -1)), -1)
-	assert_gt(float(payload.get("timestamp", 0.0)), 0.0)
+func test_gamepad_disconnect_ignored_when_overlay_active() -> void:
+	await _simulate_gamepad_input(5)
+	_dispatched_actions.clear()
+	_device_events.clear()
+
+	_store.dispatch(U_NavigationActions.start_game(StringName("exterior")))
+	_store.dispatch(U_NavigationActions.open_pause())
+	await get_tree().process_frame
+	var dispatched_before := _dispatched_actions.size()
+
+	_manager._on_joy_connection_changed(5, false)
+	await get_tree().process_frame
+
+	assert_eq(_manager.get_active_device(), M_InputDeviceManager.DeviceType.GAMEPAD, "Active device should remain gamepad when disconnect fires during overlay")
+	assert_eq(_manager.get_gamepad_device_id(), 5, "Gamepad id should be preserved during ignored disconnect")
+	assert_eq(_device_events.size(), 0, "Ignored disconnect should not emit device_changed")
+	assert_eq(_dispatched_actions.size(), dispatched_before + 1, "Ignored disconnect should only dispatch connection state")
+	var last_action := _dispatched_actions.back()
+	assert_eq(last_action.get("type"), U_InputActions.ACTION_GAMEPAD_DISCONNECTED)
+
+func test_gamepad_disconnect_ignored_with_grace_on_mobile() -> void:
+	_manager.emulate_mobile_disconnect_guard = true
+	await _simulate_gamepad_input(8)
+	_dispatched_actions.clear()
+	_device_events.clear()
+
+	_manager._on_joy_connection_changed(8, false)
+	await get_tree().process_frame
+
+	assert_eq(_manager.get_active_device(), M_InputDeviceManager.DeviceType.GAMEPAD, "Grace period should keep active device as gamepad")
+	assert_eq(_manager.get_gamepad_device_id(), 8)
+	assert_eq(_device_events.size(), 0, "Grace-ignored disconnect should not emit device_changed")
+	assert_eq(_dispatched_actions.size(), 1, "Grace-ignored disconnect should still dispatch connection state")
+	var action := _dispatched_actions.back()
+	assert_eq(action.get("type"), U_InputActions.ACTION_GAMEPAD_DISCONNECTED)
 
 func test_redundant_device_events_do_not_reemit() -> void:
 	await _simulate_gamepad_input(2)

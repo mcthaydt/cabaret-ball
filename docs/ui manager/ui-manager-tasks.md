@@ -769,7 +769,7 @@ Issues discovered during testing that need to be addressed:
   - **Expected**: Single settings menu with tabs/sections for different categories
   - **Files**: `scripts/ui/settings_menu.gd`, pause menu structure
 
-- [ ] T074 [BUG] Mobile touchscreen controls appearing after gamepad menu exit.
+- [x] T074 [BUG] Mobile touchscreen controls appearing after gamepad menu exit.
   - **Issue**: Touchscreen controls show after exiting menu with gamepad on mobile
   - **Expected**: Controls remain hidden if exited with gamepad
   - **Files**: `scripts/ui/mobile_controls.gd` visibility logic

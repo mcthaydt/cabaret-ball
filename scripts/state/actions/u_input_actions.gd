@@ -99,7 +99,8 @@ static func device_changed(device_type: int, device_id: int = -1, timestamp: flo
 			"device_type": device_type,
 			"device_id": device_id,
 			"timestamp": timestamp
-		}
+		},
+		"immediate": true
 	}
 
 ## Gamepad connected.

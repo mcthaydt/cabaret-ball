@@ -95,12 +95,12 @@ func test_visibility_follows_device_pause_and_transition_state() -> void:
 	await wait_process_frames(2)
 	assert_true(controls.visible, "Controls show when active scene is gameplay (exterior)")
 
-	controls._on_device_changed(M_InputDeviceManager.DeviceType.GAMEPAD, -1, 0.0)
-	await _await_frames(1)
+	store.dispatch(U_InputActions.device_changed(M_InputDeviceManager.DeviceType.GAMEPAD, -1, 0.0))
+	await wait_process_frames(2)
 	assert_false(controls.visible, "Controls hide when gamepad is active")
 
-	controls._on_device_changed(M_InputDeviceManager.DeviceType.TOUCHSCREEN, -1, 0.0)
-	await _await_frames(1)
+	store.dispatch(U_InputActions.device_changed(M_InputDeviceManager.DeviceType.TOUCHSCREEN, -1, 0.0))
+	await wait_process_frames(2)
 	assert_true(controls.visible, "Controls show when touchscreen is active")
 
 	store.dispatch(U_NavigationActions.open_pause())
@@ -171,6 +171,27 @@ func test_input_activity_ignored_when_overlay_active() -> void:
 	assert_false(controls._is_fading, "Controls should ignore input activity while overlay is active")
 	assert_almost_eq(controls._fade_elapsed, 0.5, 0.001,
 		"Fade timer should not reset when overlay is active")
+
+func test_gamepad_used_in_menu_keeps_controls_hidden_after_close() -> void:
+	var store := await _create_state_store()
+	store.dispatch(U_NavigationActions.start_game(StringName("exterior")))
+	var controls := await _create_controls(func(instance):
+		instance.force_enable = true
+	)
+	await wait_process_frames(2)
+	assert_true(controls.visible, "Controls should be visible in gameplay with touchscreen")
+
+	store.dispatch(U_InputActions.device_changed(M_InputDeviceManager.DeviceType.GAMEPAD, 0, 0.0))
+	await wait_process_frames(2)
+	assert_false(controls.visible, "Controls should hide when gamepad becomes active")
+
+	store.dispatch(U_NavigationActions.open_pause())
+	await wait_process_frames(2)
+	assert_false(controls.visible, "Controls should stay hidden when pause opens with gamepad")
+
+	store.dispatch(U_NavigationActions.close_pause())
+	await wait_process_frames(2)
+	assert_false(controls.visible, "BUG FIX: Controls should stay hidden after closing pause with gamepad (not reappear)")
 
 func _create_controls(configure: Callable = Callable()) -> Node:
 	var controls := MobileControlsScene.instantiate()
