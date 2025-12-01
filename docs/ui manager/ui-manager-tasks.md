@@ -758,7 +758,7 @@ Issues discovered during testing that need to be addressed:
   - **Expected**: Options should cycle/scroll when ui_up/ui_down held
   - **Files**: UI focus system or base panel input handling
 
-- [ ] T072 [UX] Context-aware settings visibility.
+- [x] T072 [UX] Context-aware settings visibility.
   - **Issue**: Gamepad controls shown when not using gamepad
   - **Expected**: Settings menu hides irrelevant options based on active device type
   - **Files**: Settings menu UI, device detection integration
@@ -775,7 +775,7 @@ Issues discovered during testing that need to be addressed:
   - **Files**: `scripts/ui/mobile_controls.gd` visibility logic
   - **Root cause**: Device detection not updating correctly on menu close
 
-- [ ] T075 [UX] Gamepad-accessible scrollbars in rebind controls.
+- [x] T075 [UX] Gamepad-accessible scrollbars in rebind controls.
   - **Issue**: Rebind controls overlay not fully controllable with gamepad (scrollbar navigation fails)
   - **Expected**: Full gamepad navigation including scroll areas
   - **Files**: `scripts/ui/input_rebinding_overlay.gd`

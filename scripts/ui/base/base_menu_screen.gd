@@ -85,3 +85,7 @@ func _navigate_focus(direction: StringName) -> void:
 
 	if next_control != null and next_control.is_visible_in_tree():
 		next_control.grab_focus()
+
+func reset_analog_navigation() -> void:
+	if _stick_repeater:
+		_stick_repeater.reset()

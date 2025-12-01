@@ -21,6 +21,9 @@ class DirectionState:
 	var time_held: float = 0.0
 	var time_since_last_repeat: float = 0.0
 
+func reset() -> void:
+	_direction_states.clear()
+
 
 ## Update the repeater state for a given direction
 ##

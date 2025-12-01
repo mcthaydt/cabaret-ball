@@ -7,6 +7,8 @@ extends "res://scripts/ui/base/base_overlay.gd"
 
 const U_NavigationActions := preload("res://scripts/state/actions/u_navigation_actions.gd")
 const U_FocusConfigurator := preload("res://scripts/ui/helpers/u_focus_configurator.gd")
+const U_InputSelectors := preload("res://scripts/state/selectors/u_input_selectors.gd")
+const M_InputDeviceManager := preload("res://scripts/managers/m_input_device_manager.gd")
 
 const OVERLAY_SETTINGS := StringName("settings_menu_overlay")
 const OVERLAY_INPUT_PROFILE := StringName("input_profile_selector")
@@ -22,12 +24,14 @@ const OVERLAY_INPUT_REBINDING := StringName("input_rebinding")
 @onready var _rebind_controls_button: Button = %RebindControlsButton
 @onready var _quit_button: Button = %QuitButton
 
+var _last_device_type: int = M_InputDeviceManager.DeviceType.KEYBOARD_MOUSE
+var _consume_next_nav: bool = false
+
 func _ready() -> void:
 	await super._ready()
 	_configure_focus_neighbors()
 
 func _configure_focus_neighbors() -> void:
-	# Configure vertical focus navigation for pause menu buttons with wrapping
 	var buttons: Array[Control] = []
 	if _resume_button != null:
 		buttons.append(_resume_button)
@@ -35,9 +39,9 @@ func _configure_focus_neighbors() -> void:
 		buttons.append(_settings_button)
 	if _input_profiles_button != null:
 		buttons.append(_input_profiles_button)
-	if _gamepad_settings_button != null:
+	if _gamepad_settings_button != null and _gamepad_settings_button.visible:
 		buttons.append(_gamepad_settings_button)
-	if _touchscreen_settings_button != null:
+	if _touchscreen_settings_button != null and _touchscreen_settings_button.visible:
 		buttons.append(_touchscreen_settings_button)
 	if _rebind_controls_button != null:
 		buttons.append(_rebind_controls_button)
@@ -48,29 +52,63 @@ func _configure_focus_neighbors() -> void:
 		U_FocusConfigurator.configure_vertical_focus(buttons, true)
 
 func _on_store_ready(store_ref: M_StateStore) -> void:
-	# Subscribe to navigation state to hide when shell changes away from gameplay
 	if store_ref != null:
-		store_ref.slice_updated.connect(_on_navigation_changed)
+		store_ref.slice_updated.connect(_on_slice_updated)
+		_update_settings_visibility(store_ref.get_state())
 
 func _exit_tree() -> void:
 	var store := get_store()
-	if store != null and store.slice_updated.is_connected(_on_navigation_changed):
-		store.slice_updated.disconnect(_on_navigation_changed)
+	if store != null and store.slice_updated.is_connected(_on_slice_updated):
+		store.slice_updated.disconnect(_on_slice_updated)
 
-func _on_navigation_changed(slice_name: StringName, _slice_state: Dictionary) -> void:
-	if slice_name != StringName("navigation"):
-		return
-
+func _on_slice_updated(slice_name: StringName, _slice_state: Dictionary) -> void:
 	var store := get_store()
 	if store == null:
 		return
 
-	var nav_state: Dictionary = store.get_slice(StringName("navigation"))
-	var shell: StringName = nav_state.get("shell", StringName())
+	if slice_name == StringName("navigation"):
+		var nav_state: Dictionary = store.get_slice(StringName("navigation"))
+		var shell: StringName = nav_state.get("shell", StringName())
+		if shell != StringName("gameplay"):
+			visible = false
 
-	# Hide pause menu when transitioning away from gameplay
-	if shell != StringName("gameplay"):
-		visible = false
+	_update_settings_visibility(store.get_state())
+
+func _update_settings_visibility(state: Dictionary) -> void:
+	var device_type: int = U_InputSelectors.get_active_device_type(state)
+	var is_gamepad: bool = device_type == M_InputDeviceManager.DeviceType.GAMEPAD
+	var is_touchscreen: bool = device_type == M_InputDeviceManager.DeviceType.TOUCHSCREEN
+
+	if _gamepad_settings_button != null:
+		_gamepad_settings_button.visible = is_gamepad
+	if _touchscreen_settings_button != null:
+		_touchscreen_settings_button.visible = is_touchscreen
+
+	var previous_type: int = _last_device_type
+	_last_device_type = device_type
+
+	_configure_focus_neighbors()
+
+	if is_gamepad and previous_type != M_InputDeviceManager.DeviceType.GAMEPAD:
+		reset_analog_navigation()
+		_consume_next_nav = true
+		_focus_resume()
+
+func _navigate_focus(direction: StringName) -> void:
+	if _consume_next_nav:
+		_consume_next_nav = false
+		return
+	super._navigate_focus(direction)
+
+func _focus_resume() -> void:
+	if _resume_button == null or not _resume_button.is_inside_tree() or not _resume_button.visible:
+		_apply_initial_focus()
+		return
+	call_deferred("_deferred_focus_resume")
+
+func _deferred_focus_resume() -> void:
+	if _resume_button != null and _resume_button.is_inside_tree() and _resume_button.visible:
+		_resume_button.grab_focus()
 
 func _on_panel_ready() -> void:
 	_connect_buttons()
