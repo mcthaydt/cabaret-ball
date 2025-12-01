@@ -240,6 +240,9 @@ func _build_action_rows() -> void:
 				"category_header": category_header
 			}
 
+			# Ensure rows remain visible when focused via keyboard/gamepad.
+			_connect_row_focus_handlers(row, add_button, replace_button, reset_button)
+
 			if _is_reserved(action):
 				add_button.disabled = true
 				replace_button.disabled = true
@@ -1022,6 +1025,37 @@ func _cycle_row_button(direction: int) -> void:
 		_row_button_index = 0
 
 	_apply_focus()
+
+func _ensure_row_visible(row: Control) -> void:
+	if row == null:
+		return
+	if _scroll == null:
+		return
+	if not row.is_inside_tree():
+		return
+	# Preserve horizontal scroll and only adjust vertical position so
+	# moving focus up/down does not cause horizontal jitter.
+	var original_horizontal: float = _scroll.scroll_horizontal
+	_scroll.ensure_control_visible(row)
+	_scroll.scroll_horizontal = original_horizontal
+
+func _connect_row_focus_handlers(row: Control, add_button: Button, replace_button: Button, reset_button: Button) -> void:
+	if row != null:
+		row.focus_entered.connect(func() -> void:
+			_ensure_row_visible(row)
+		)
+	if add_button != null:
+		add_button.focus_entered.connect(func() -> void:
+			_ensure_row_visible(row)
+		)
+	if replace_button != null:
+		replace_button.focus_entered.connect(func() -> void:
+			_ensure_row_visible(row)
+		)
+	if reset_button != null:
+		reset_button.focus_entered.connect(func() -> void:
+			_ensure_row_visible(row)
+		)
 
 func _cycle_bottom_button(direction: int) -> void:
 	var buttons: Array[Button] = []
