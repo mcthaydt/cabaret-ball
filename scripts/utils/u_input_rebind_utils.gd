@@ -448,13 +448,13 @@ static func get_texture_for_event(event: InputEvent) -> Texture2D:
 		var button_name := ""
 		match joy_button.button_index:
 			JOY_BUTTON_A:
-				button_name = "button_south"
+				button_name = "face_buttons_south"
 			JOY_BUTTON_B:
-				button_name = "button_east"
+				button_name = "face_buttons_east"
 			JOY_BUTTON_X:
-				button_name = "button_west"
+				button_name = "face_buttons_west"
 			JOY_BUTTON_Y:
-				button_name = "button_north"
+				button_name = "face_buttons_north"
 			JOY_BUTTON_LEFT_SHOULDER:
 				button_name = "button_lb"
 			JOY_BUTTON_RIGHT_SHOULDER:
@@ -469,6 +469,40 @@ static func get_texture_for_event(event: InputEvent) -> Texture2D:
 				button_name = "button_select"
 		if not button_name.is_empty():
 			var path := "res://resources/button_prompts/gamepad/%s.png" % button_name
+			if ResourceLoader.exists(path):
+				return load(path)
+
+	elif event is InputEventJoypadMotion:
+		var motion := event as InputEventJoypadMotion
+		var axis := motion.axis
+		var value := motion.axis_value
+		var stick_name := ""
+
+		# Determine stick and direction
+		match axis:
+			JOY_AXIS_LEFT_X:
+				if value < 0.0:
+					stick_name = "ls_left"
+				elif value > 0.0:
+					stick_name = "ls_right"
+			JOY_AXIS_LEFT_Y:
+				if value < 0.0:
+					stick_name = "ls_up"
+				elif value > 0.0:
+					stick_name = "ls_down"
+			JOY_AXIS_RIGHT_X:
+				if value < 0.0:
+					stick_name = "rs_left"
+				elif value > 0.0:
+					stick_name = "rs_right"
+			JOY_AXIS_RIGHT_Y:
+				if value < 0.0:
+					stick_name = "rs_up"
+				elif value > 0.0:
+					stick_name = "rs_down"
+
+		if not stick_name.is_empty():
+			var path := "res://resources/button_prompts/gamepad/%s.png" % stick_name
 			if ResourceLoader.exists(path):
 				return load(path)
 

@@ -22,11 +22,11 @@ static func _initialize_registry() -> void:
 	var mobile_base := "res://resources/button_prompts/mobile/"
 
 	_assign_prompt(StringName("ui_accept"), DEVICE_KEYBOARD_MOUSE, keyboard_base + "key_space.png", "Enter")
-	_assign_prompt(StringName("ui_accept"), DEVICE_GAMEPAD, gamepad_base + "button_south.png", "A")
+	_assign_prompt(StringName("ui_accept"), DEVICE_GAMEPAD, gamepad_base + "face_buttons_south.png", "A")
 	_assign_prompt(StringName("ui_accept"), DEVICE_TOUCHSCREEN, mobile_base + "button_background.png", "Accept")
 
 	_assign_prompt(StringName("ui_cancel"), DEVICE_KEYBOARD_MOUSE, keyboard_base + "key_escape.png", "Esc")
-	_assign_prompt(StringName("ui_cancel"), DEVICE_GAMEPAD, gamepad_base + "button_east.png", "B")
+	_assign_prompt(StringName("ui_cancel"), DEVICE_GAMEPAD, gamepad_base + "face_buttons_east.png", "B")
 	_assign_prompt(StringName("ui_cancel"), DEVICE_TOUCHSCREEN, mobile_base + "button_background.png", "Back")
 
 	_assign_prompt(StringName("ui_pause"), DEVICE_KEYBOARD_MOUSE, keyboard_base + "key_escape.png", "Esc")
@@ -34,11 +34,11 @@ static func _initialize_registry() -> void:
 	_assign_prompt(StringName("ui_pause"), DEVICE_TOUCHSCREEN, mobile_base + "button_background.png", "Pause")
 
 	_assign_prompt(StringName("interact"), DEVICE_KEYBOARD_MOUSE, keyboard_base + "key_e.png", "E")
-	_assign_prompt(StringName("interact"), DEVICE_GAMEPAD, gamepad_base + "button_west.png", "West")
+	_assign_prompt(StringName("interact"), DEVICE_GAMEPAD, gamepad_base + "face_buttons_west.png", "X")
 	_assign_prompt(StringName("interact"), DEVICE_TOUCHSCREEN, mobile_base + "button_background.png", "Interact")
 
 	_assign_prompt(StringName("jump"), DEVICE_KEYBOARD_MOUSE, keyboard_base + "key_space.png")
-	_assign_prompt(StringName("jump"), DEVICE_GAMEPAD, gamepad_base + "button_south.png")
+	_assign_prompt(StringName("jump"), DEVICE_GAMEPAD, gamepad_base + "face_buttons_south.png")
 
 	_assign_prompt(StringName("sprint"), DEVICE_KEYBOARD_MOUSE, keyboard_base + "key_shift.png")
 	_assign_prompt(StringName("sprint"), DEVICE_GAMEPAD, gamepad_base + "button_ls.png", "L3")
@@ -47,16 +47,16 @@ static func _initialize_registry() -> void:
 	_assign_prompt(StringName("pause"), DEVICE_GAMEPAD, gamepad_base + "button_start.png")
 
 	_assign_prompt(StringName("move_forward"), DEVICE_KEYBOARD_MOUSE, keyboard_base + "key_w.png")
-	_assign_prompt(StringName("move_forward"), DEVICE_GAMEPAD, gamepad_base + "dpad_up.png")
+	_assign_prompt(StringName("move_forward"), DEVICE_GAMEPAD, gamepad_base + "ls_up.png")
 
 	_assign_prompt(StringName("move_backward"), DEVICE_KEYBOARD_MOUSE, keyboard_base + "key_s.png")
-	_assign_prompt(StringName("move_backward"), DEVICE_GAMEPAD, gamepad_base + "dpad_down.png")
+	_assign_prompt(StringName("move_backward"), DEVICE_GAMEPAD, gamepad_base + "ls_down.png")
 
 	_assign_prompt(StringName("move_left"), DEVICE_KEYBOARD_MOUSE, keyboard_base + "key_a.png")
-	_assign_prompt(StringName("move_left"), DEVICE_GAMEPAD, gamepad_base + "dpad_left.png")
+	_assign_prompt(StringName("move_left"), DEVICE_GAMEPAD, gamepad_base + "ls_left.png")
 
 	_assign_prompt(StringName("move_right"), DEVICE_KEYBOARD_MOUSE, keyboard_base + "key_d.png")
-	_assign_prompt(StringName("move_right"), DEVICE_GAMEPAD, gamepad_base + "dpad_right.png")
+	_assign_prompt(StringName("move_right"), DEVICE_GAMEPAD, gamepad_base + "ls_right.png")
 
 	# UI navigation - use d-pad graphics for both keyboard and gamepad
 	# (keyboard arrow keys will show gamepad-style directional icons)
