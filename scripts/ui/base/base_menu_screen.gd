@@ -65,6 +65,8 @@ func _navigate_focus(direction: StringName) -> void:
 	var focused := get_viewport().gui_get_focus_owner()
 	if focused == null:
 		return
+	if not is_ancestor_of(focused):
+		return
 
 	var next_control: Control = null
 	match direction:
@@ -81,5 +83,5 @@ func _navigate_focus(direction: StringName) -> void:
 			if focused.focus_neighbor_right != NodePath():
 				next_control = focused.get_node_or_null(focused.focus_neighbor_right) as Control
 
-	if next_control != null and next_control.is_visible_in_tree() and not next_control.is_disabled():
+	if next_control != null and next_control.is_visible_in_tree():
 		next_control.grab_focus()

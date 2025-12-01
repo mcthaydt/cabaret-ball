@@ -7,6 +7,7 @@ const U_InputSelectors := preload("res://scripts/state/selectors/u_input_selecto
 const U_InputActions := preload("res://scripts/state/actions/u_input_actions.gd")
 const GamepadStickPreview := preload("res://scripts/ui/gamepad_stick_preview.gd")
 const U_NavigationActions := preload("res://scripts/state/actions/u_navigation_actions.gd")
+const U_FocusConfigurator := preload("res://scripts/ui/helpers/u_focus_configurator.gd")
 
 @onready var _left_slider: HSlider = %LeftDeadzoneSlider
 @onready var _right_slider: HSlider = %RightDeadzoneSlider
@@ -26,6 +27,7 @@ var _right_stick_raw: Vector2 = Vector2.ZERO
 var _left_stick_processed: Vector2 = Vector2.ZERO
 var _right_stick_processed: Vector2 = Vector2.ZERO
 var _updating_from_state: bool = false
+var _preview_active: bool = false
 
 func _on_store_ready(store: M_StateStore) -> void:
 	if _store_unsubscribe != Callable() and _store_unsubscribe.is_valid():
@@ -36,7 +38,40 @@ func _on_store_ready(store: M_StateStore) -> void:
 		_on_state_changed({}, store.get_state())
 
 func _on_panel_ready() -> void:
+	_configure_focus_neighbors()
 	_connect_control_signals()
+
+func _configure_focus_neighbors() -> void:
+	var vertical_controls: Array[Control] = []
+	if _left_slider != null:
+		vertical_controls.append(_left_slider)
+	if _right_slider != null:
+		vertical_controls.append(_right_slider)
+	if _vibration_checkbox != null:
+		vertical_controls.append(_vibration_checkbox)
+	if _vibration_slider != null:
+		vertical_controls.append(_vibration_slider)
+	if _preview != null:
+		vertical_controls.append(_preview)
+
+	if not vertical_controls.is_empty():
+		U_FocusConfigurator.configure_vertical_focus(vertical_controls, false)
+
+	if _preview != null and _apply_button != null:
+		_preview.focus_neighbor_bottom = _preview.get_path_to(_apply_button)
+
+	var buttons: Array[Control] = []
+	if _cancel_button != null:
+		buttons.append(_cancel_button)
+	if _apply_button != null:
+		buttons.append(_apply_button)
+
+	if not buttons.is_empty():
+		U_FocusConfigurator.configure_horizontal_focus(buttons, true)
+		for button in buttons:
+			if _preview != null:
+				button.focus_neighbor_top = button.get_path_to(_preview)
+				button.focus_neighbor_bottom = button.get_path_to(_preview)
 
 func _connect_control_signals() -> void:
 	_left_slider.value_changed.connect(func(value): _update_slider_label(_left_label, value))
@@ -116,11 +151,40 @@ func _close_overlay() -> void:
 	if store != null:
 		store.dispatch(U_NavigationActions.close_top_overlay())
 
-func _process(_delta: float) -> void:
+func _on_back_pressed() -> void:
+	_close_overlay()
+
+func _process(delta: float) -> void:
+	if _preview == null or not _preview.has_focus() or not _preview_active:
+		super._process(delta)
 	_update_preview_vectors()
 
+func _unhandled_input(event: InputEvent) -> void:
+	if _preview != null and _preview.has_focus():
+		if event.is_action_pressed("ui_accept"):
+			_preview_active = true
+			var viewport := get_viewport()
+			if viewport != null:
+				viewport.set_input_as_handled()
+			return
+
+		if _preview_active and (event.is_action_pressed("ui_cancel") or event.is_action_pressed("ui_pause")):
+			_preview_active = false
+			var viewport_cancel := get_viewport()
+			if viewport_cancel != null:
+				viewport_cancel.set_input_as_handled()
+			return
+
+	super._unhandled_input(event)
+
 func _update_preview_vectors() -> void:
-	if _current_device_id < 0:
+	if _preview == null:
+		return
+
+	# Only show live joystick preview when the preview control is focused.
+	# This keeps the stick "free" for navigation and slider control until
+	# the user explicitly selects the preview row.
+	if not _preview_active or not _preview.has_focus() or _current_device_id < 0:
 		_preview.update_vectors(Vector2.ZERO, Vector2.ZERO)
 		_left_stick_raw = Vector2.ZERO
 		_right_stick_raw = Vector2.ZERO
