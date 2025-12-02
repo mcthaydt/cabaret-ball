@@ -42,6 +42,7 @@ var _fade_duration: float = 0.0
 var _fade_elapsed: float = 0.0
 var _is_fading: bool = false
 var _overlay_input_logged: bool = false
+var _awaiting_transition_signal: bool = false  # True when waiting for transition_visual_complete
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -75,6 +76,14 @@ func _ready() -> void:
 	_build_controls(initial_state)
 	_apply_state(initial_state)
 	_update_visibility()
+
+	# Connect to SceneManager's transition_visual_complete signal
+	# This tells us when fade-in animation completes and scene is fully visible
+	var scene_managers := get_tree().get_nodes_in_group("scene_manager")
+	if not scene_managers.is_empty():
+		var scene_manager: Node = scene_managers[0]
+		if scene_manager.has_signal("transition_visual_complete"):
+			scene_manager.transition_visual_complete.connect(_on_transition_visual_complete)
 
 func _exit_tree() -> void:
 	if _unsubscribe != Callable() and _unsubscribe.is_valid():
@@ -262,12 +271,23 @@ func _update_navigation_state(state: Dictionary) -> void:
 		_overlay_input_logged = false
 
 	var scene_state: Dictionary = state.get("scene", {})
+	var was_transitioning: bool = _is_transitioning
 	_is_transitioning = bool(scene_state.get("is_transitioning", false))
+
+	# When transition starts, block visibility updates until signal fires
+	if not was_transitioning and _is_transitioning:
+		_awaiting_transition_signal = true
 
 func _update_visibility() -> void:
 	# Always show controls when editing, regardless of device type
 	if _is_edit_overlay_active:
 		visible = true
+		_awaiting_transition_signal = false
+		return
+
+	# Block all visibility updates if waiting for transition signal
+	if _awaiting_transition_signal:
+		visible = false
 		return
 
 	var device_allows: bool = _device_type == M_InputDeviceManager.DeviceType.TOUCHSCREEN
@@ -281,6 +301,12 @@ func _on_state_changed(_action: Dictionary, state: Dictionary) -> void:
 	if state == null:
 		return
 	_apply_state(state)
+
+## Called when SceneManager's visual transition completes (fade-in finishes)
+func _on_transition_visual_complete(_scene_id: StringName) -> void:
+	if _awaiting_transition_signal:
+		_awaiting_transition_signal = false
+		_update_visibility()
 
 func force_apply_positions(state: Dictionary, clamp_controls: bool = true) -> void:
 	_apply_positions(state, true)

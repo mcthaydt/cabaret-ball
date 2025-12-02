@@ -12,6 +12,13 @@ class_name M_SceneManager
 ## - Subscribe to scene state changes
 ##
 ## Discovery: Add to "scene_manager" group, discoverable via get_tree().get_nodes_in_group()
+##
+## Signals:
+## - transition_visual_complete(scene_id): Emitted when fade-in completes and scene is fully visible
+
+## Emitted when transition visual effects complete and scene is fully visible
+## This is the signal MobileControls should use to show controls (not state changes)
+signal transition_visual_complete(scene_id: StringName)
 
 const M_STATE_STORE := preload("res://scripts/state/m_state_store.gd")
 const M_CURSOR_MANAGER := preload("res://scripts/managers/m_cursor_manager.gd")
@@ -231,7 +238,8 @@ func _on_state_changed(_action: Dictionary, state: Dictionary) -> void:
 		if _navigation_pending_scene_id == new_scene_id:
 			_navigation_pending_scene_id = StringName("")
 		_update_cursor_for_scene(new_scene_id)
-		_sync_navigation_shell_with_scene(new_scene_id)
+		# NOTE: _sync_navigation_shell_with_scene() now called AFTER transition completes
+		# in _process_transition_queue() to prevent mobile controls flashing (line 316)
 
 ## Load initial scene on startup
 func _load_initial_scene() -> void:
@@ -310,6 +318,13 @@ func _process_transition_queue() -> void:
 	# Dispatch transition completed action
 	if _store != null:
 		_store.dispatch(U_SCENE_ACTIONS.transition_completed(request.scene_id))
+
+	# Sync navigation shell immediately after scene loads
+	_sync_navigation_shell_with_scene(request.scene_id)
+
+	# Emit signal that visual transition is complete (scene is fully visible)
+	# MobileControls waits for this signal before showing controls
+	transition_visual_complete.emit(request.scene_id)
 
 	if _active_transition_target == request.scene_id:
 		_active_transition_target = StringName("")
