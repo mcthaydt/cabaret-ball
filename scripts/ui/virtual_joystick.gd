@@ -31,6 +31,7 @@ var _store: M_StateStore = null
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	set_process_input(true)
 	_apply_default_size()
 	_apply_textures()
 	_reset_thumb()

@@ -54,6 +54,7 @@ var _store: M_StateStore = null
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	set_process_input(true)
 	_button_texture_rect = get_node_or_null("ButtonTexture") as TextureRect
 	_action_label = get_node_or_null("ActionLabel") as Label
 	_ensure_default_size()

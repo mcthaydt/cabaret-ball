@@ -196,7 +196,14 @@ static func reduce(state: Dictionary, action: Dictionary) -> Dictionary:
 					updated_entities[player_id] = player_snapshot
 			reset_state["entities"] = updated_entities
 
+			# Preserve device state (active_device, gamepad_connected, etc.) while resetting gameplay input
+			var current_input: Dictionary = _get_current_input(state)
 			var reset_input := INPUT_REDUCER.get_default_gameplay_input_state()
+			reset_input["active_device"] = current_input.get("active_device", 0)
+			reset_input["gamepad_connected"] = current_input.get("gamepad_connected", false)
+			reset_input["gamepad_device_id"] = current_input.get("gamepad_device_id", -1)
+			reset_input["touchscreen_enabled"] = current_input.get("touchscreen_enabled", false)
+			reset_input["last_input_time"] = current_input.get("last_input_time", 0.0)
 			return _apply_input_state(reset_state, reset_input)
 
 		U_GameplayActions.ACTION_RESET_AFTER_DEATH:
