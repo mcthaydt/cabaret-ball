@@ -97,11 +97,14 @@ func test_save_button_closes_overlay_without_reverting_positions() -> void:
 
 	var save_button: Button = overlay.get_node("%SaveButton")
 	var close_count_before := _count_navigation_actions(U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY)
+	var return_count_before := _count_navigation_actions(U_NavigationActions.ACTION_RETURN_TO_MAIN_MENU)
 	save_button.emit_signal("pressed")
 	await _pump_frames(1)
 
-	assert_eq(_count_navigation_actions(U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY), close_count_before + 1,
-		"Save should dispatch navigation close action")
+	var close_count_after := _count_navigation_actions(U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY)
+	var return_count_after := _count_navigation_actions(U_NavigationActions.ACTION_RETURN_TO_MAIN_MENU)
+	assert_eq(close_count_after + return_count_after, close_count_before + return_count_before + 1,
+		"Save should dispatch a single navigation close/return action")
 	assert_true(joystick.position != original_joystick_pos, "Joystick should not revert when saving")
 
 func test_reset_button_calls_profile_manager_and_clears_custom_positions() -> void:
@@ -154,11 +157,14 @@ func test_cancel_button_reverts_positions_and_closes_overlay() -> void:
 
 	var cancel_button: Button = overlay.get_node("%CancelButton")
 	var close_count_before := _count_navigation_actions(U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY)
+	var return_count_before := _count_navigation_actions(U_NavigationActions.ACTION_RETURN_TO_MAIN_MENU)
 	cancel_button.emit_signal("pressed")
 	await _pump_frames(1)
 
-	assert_eq(_count_navigation_actions(U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY), close_count_before + 1,
-		"Cancel should dispatch navigation close action")
+	var close_count_after := _count_navigation_actions(U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY)
+	var return_count_after := _count_navigation_actions(U_NavigationActions.ACTION_RETURN_TO_MAIN_MENU)
+	assert_eq(close_count_after + return_count_after, close_count_before + return_count_before + 1,
+		"Cancel should dispatch a single navigation close/return action")
 	assert_vector_almost_eq(joystick.position, original_joystick_pos, 0.001, "Joystick position should revert on cancel")
 	assert_vector_almost_eq((buttons[0] as Control).position, original_button_pos, 0.001, "Button position should revert on cancel")
 

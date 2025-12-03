@@ -71,9 +71,10 @@ func test_apply_updates_state_settings() -> void:
 	await _pump()
 	await _pump()
 
-	assert_eq(_store.dispatched_actions.size(), 5, "Overlay should dispatch four input actions plus navigation close")
+	assert_eq(_store.dispatched_actions.size(), 5, "Overlay should dispatch four input actions plus one navigation close action")
 	var nav_close_count := _count_navigation_actions(U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY)
-	assert_eq(nav_close_count, 1, "Apply should dispatch a navigation close action")
+	var nav_return_count := _count_navigation_actions(U_NavigationActions.ACTION_RETURN_TO_MAIN_MENU)
+	assert_eq(nav_close_count + nav_return_count, 1, "Apply should dispatch a single navigation close/navigation return action")
 
 func _pump() -> void:
 	await get_tree().process_frame

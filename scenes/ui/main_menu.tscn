@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://blko7rgs3d4bo"]
+[gd_scene load_steps=3 format=3 uid="uid://blko7rgs3d4bo"]
 
 [ext_resource type="Script" uid="uid://cyrj62w8fm82o" path="res://scripts/ui/main_menu.gd" id="1_main_menu_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/settings_menu.tscn" id="2_settings_menu_scene"]
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -57,18 +58,4 @@ offset_bottom = 90.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="SettingsTitle" type="Label" parent="SettingsPanel"]
-layout_mode = 2
-text = "Settings"
-horizontal_alignment = 1
-
-[node name="SettingsDescription" type="Label" parent="SettingsPanel"]
-layout_mode = 2
-text = "Settings panel placeholder. Additional controls will be added in later tasks."
-autowrap_mode = 3
-horizontal_alignment = 1
-
-[node name="SettingsBackButton" type="Button" parent="SettingsPanel"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Back"
+[node name="SettingsContent" parent="SettingsPanel" instance=ExtResource("2_settings_menu_scene")]

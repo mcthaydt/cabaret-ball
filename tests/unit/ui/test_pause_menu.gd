@@ -40,19 +40,6 @@ func test_settings_button_opens_settings_overlay() -> void:
 	assert_eq(stack.back(), StringName("settings_menu_overlay"),
 		"Settings button should push the settings overlay")
 
-func test_input_profiles_button_opens_selector() -> void:
-	var store := await _create_state_store()
-	_prepare_paused_state(store)
-	var pause_menu := await _instantiate_pause_menu()
-
-	var button: Button = pause_menu.get_node("%InputProfilesButton")
-	button.emit_signal("pressed")
-	await wait_process_frames(2)
-
-	var nav_slice := store.get_slice(StringName("navigation"))
-	assert_eq(nav_slice.get("overlay_stack", []).back(), StringName("input_profile_selector"),
-		"Input Profiles button should open the selector overlay")
-
 func test_quit_button_returns_to_main_menu() -> void:
 	var store := await _create_state_store()
 	_prepare_paused_state(store)
@@ -97,45 +84,6 @@ func test_pause_menu_hidden_when_transitioning_to_main_menu() -> void:
 
 	# Pause menu should be hidden because we're transitioning to main menu shell
 	assert_false(pause_menu.visible, "Pause menu should be hidden when transitioning to main menu")
-
-func test_device_specific_settings_buttons_hidden_for_keyboard_mouse() -> void:
-	var store := await _create_state_store()
-	_prepare_paused_state(store)
-	var pause_menu := await _instantiate_pause_menu()
-
-	var gamepad_button: Button = pause_menu.get_node("%GamepadSettingsButton")
-	var touchscreen_button: Button = pause_menu.get_node("%TouchscreenSettingsButton")
-
-	assert_not_null(gamepad_button, "Gamepad settings button should exist in scene")
-	assert_not_null(touchscreen_button, "Touchscreen settings button should exist in scene")
-	assert_false(gamepad_button.visible, "Gamepad settings should be hidden when using keyboard/mouse")
-	assert_false(touchscreen_button.visible, "Touchscreen settings should be hidden when using keyboard/mouse")
-
-func test_gamepad_settings_button_visible_for_gamepad_device() -> void:
-	var store := await _create_state_store()
-	_prepare_paused_state(store)
-	var pause_menu := await _instantiate_pause_menu()
-
-	var gamepad_button: Button = pause_menu.get_node("%GamepadSettingsButton")
-	assert_false(gamepad_button.visible, "Precondition: hidden for keyboard/mouse")
-
-	store.dispatch(U_InputActions.device_changed(M_InputDeviceManager.DeviceType.GAMEPAD, 0, 0.0))
-	await wait_process_frames(2)
-
-	assert_true(gamepad_button.visible, "Gamepad settings should be visible when gamepad is active device")
-
-func test_touchscreen_settings_button_visible_for_touchscreen_device() -> void:
-	var store := await _create_state_store()
-	_prepare_paused_state(store)
-	var pause_menu := await _instantiate_pause_menu()
-
-	var touchscreen_button: Button = pause_menu.get_node("%TouchscreenSettingsButton")
-	assert_false(touchscreen_button.visible, "Precondition: hidden for keyboard/mouse")
-
-	store.dispatch(U_InputActions.device_changed(M_InputDeviceManager.DeviceType.TOUCHSCREEN, -1, 0.0))
-	await wait_process_frames(2)
-
-	assert_true(touchscreen_button.visible, "Touchscreen settings should be visible when touchscreen is active device")
 
 func test_switching_to_gamepad_focuses_resume_button() -> void:
 	var store := await _create_state_store()

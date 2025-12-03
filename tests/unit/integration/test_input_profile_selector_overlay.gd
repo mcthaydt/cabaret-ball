@@ -74,11 +74,18 @@ func test_pause_menu_opens_profile_selector_overlay() -> void:
 
 	await _start_game_and_pause()
 
-	# Find pause menu node and press InputProfilesButton
+	# Find pause menu node and press Settings, then InputProfilesButton in settings overlay
 	var pause_menu := _ui_overlay_stack.get_child(_ui_overlay_stack.get_child_count() - 1) as Control
 	assert_not_null(pause_menu, "Pause menu overlay should exist")
-	var profiles_button := pause_menu.get_node("VBoxContainer/InputProfilesButton") as Button
-	assert_not_null(profiles_button, "InputProfilesButton should exist on pause menu")
+	var settings_button := pause_menu.get_node("VBoxContainer/SettingsButton") as Button
+	assert_not_null(settings_button, "SettingsButton should exist on pause menu")
+	settings_button.emit_signal("pressed")
+	await wait_physics_frames(4)
+
+	var settings_overlay := _ui_overlay_stack.get_child(_ui_overlay_stack.get_child_count() - 1) as Control
+	assert_not_null(settings_overlay, "Settings overlay should exist after pressing Settings")
+	var profiles_button := settings_overlay.get_node("VBoxContainer/InputProfilesButton") as Button
+	assert_not_null(profiles_button, "InputProfilesButton should exist on settings overlay")
 	profiles_button.emit_signal("pressed")
 	# Allow selector overlay to finish loading and register to the stack.
 	await wait_physics_frames(4)
@@ -95,9 +102,14 @@ func test_apply_closes_overlays_and_resumes() -> void:
 
 	await _start_game_and_pause()
 
-	# Open the profile selector overlay
+	# Open the settings overlay, then the profile selector overlay
 	var pause_menu := _ui_overlay_stack.get_child(_ui_overlay_stack.get_child_count() - 1) as Control
-	var profiles_button := pause_menu.get_node("VBoxContainer/InputProfilesButton") as Button
+	var settings_button := pause_menu.get_node("VBoxContainer/SettingsButton") as Button
+	settings_button.emit_signal("pressed")
+	await wait_physics_frames(2)
+
+	var settings_overlay := _ui_overlay_stack.get_child(_ui_overlay_stack.get_child_count() - 1) as Control
+	var profiles_button := settings_overlay.get_node("VBoxContainer/InputProfilesButton") as Button
 	profiles_button.emit_signal("pressed")
 	await wait_physics_frames(2)
 
@@ -119,10 +131,16 @@ func test_profile_selector_shows_binding_preview() -> void:
 
 	await _start_game_and_pause()
 
-	# Open the profile selector overlay
+	# Open the settings overlay, then the profile selector overlay
 	var pause_menu := _ui_overlay_stack.get_child(_ui_overlay_stack.get_child_count() - 1) as Control
-	var profiles_button := pause_menu.get_node("VBoxContainer/InputProfilesButton") as Button
-	assert_not_null(profiles_button, "InputProfilesButton should exist on pause menu")
+	var settings_button := pause_menu.get_node("VBoxContainer/SettingsButton") as Button
+	assert_not_null(settings_button, "SettingsButton should exist on pause menu")
+	settings_button.emit_signal("pressed")
+	await wait_physics_frames(4)
+
+	var settings_overlay := _ui_overlay_stack.get_child(_ui_overlay_stack.get_child_count() - 1) as Control
+	var profiles_button := settings_overlay.get_node("VBoxContainer/InputProfilesButton") as Button
+	assert_not_null(profiles_button, "InputProfilesButton should exist on settings overlay")
 	profiles_button.emit_signal("pressed")
 	await wait_physics_frames(4)
 

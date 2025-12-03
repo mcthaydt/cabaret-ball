@@ -8,5 +8,5 @@ screen_id = &"input_profile_selector"
 kind = 1
 scene_id = &"input_profile_selector"
 allowed_shells = [&"gameplay"]
-allowed_parents = [&"pause_menu"]
+allowed_parents = [&"pause_menu", &"settings_menu_overlay"]
 close_mode = 1

@@ -8,6 +8,7 @@ const RS_TouchscreenSettings := preload("res://scripts/ecs/resources/rs_touchscr
 const VirtualJoystickScene := preload("res://scenes/ui/virtual_joystick.tscn")
 const VirtualButtonScene := preload("res://scenes/ui/virtual_button.tscn")
 const U_NavigationActions := preload("res://scripts/state/actions/u_navigation_actions.gd")
+const U_NavigationSelectors := preload("res://scripts/state/selectors/u_navigation_selectors.gd")
 const U_FocusConfigurator := preload("res://scripts/ui/helpers/u_focus_configurator.gd")
 
 @onready var _joystick_size_slider: HSlider = %JoystickSizeSlider
@@ -400,5 +401,13 @@ func _log_local_slider_edit(_field: String, _value: float) -> void:
 
 func _close_overlay() -> void:
 	var store := get_store()
-	if store != null:
+	if store == null:
+		return
+
+	var nav_slice: Dictionary = store.get_state().get("navigation", {})
+	var overlay_stack: Array = U_NavigationSelectors.get_overlay_stack(nav_slice)
+
+	if not overlay_stack.is_empty():
 		store.dispatch(U_NavigationActions.close_top_overlay())
+	else:
+		store.dispatch(U_NavigationActions.return_to_main_menu())

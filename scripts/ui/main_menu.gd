@@ -18,7 +18,6 @@ const DEFAULT_GAMEPLAY_SCENE := StringName("exterior")
 @onready var _settings_panel: Control = %SettingsPanel
 @onready var _play_button: Button = %PlayButton
 @onready var _settings_button: Button = %SettingsButton
-@onready var _settings_back_button: Button = %SettingsBackButton
 
 var _store_unsubscribe: Callable = Callable()
 var _active_panel: StringName = StringName()
@@ -54,8 +53,6 @@ func _connect_buttons() -> void:
 		_play_button.pressed.connect(_on_play_pressed)
 	if _settings_button != null and not _settings_button.pressed.is_connected(_on_settings_pressed):
 		_settings_button.pressed.connect(_on_settings_pressed)
-	if _settings_back_button != null and not _settings_back_button.pressed.is_connected(_on_settings_back_pressed):
-		_settings_back_button.pressed.connect(_on_settings_back_pressed)
 
 func _on_state_changed(_action: Dictionary, state: Dictionary) -> void:
 	var navigation_slice: Dictionary = state.get("navigation", {})
@@ -109,12 +106,6 @@ func _on_settings_pressed() -> void:
 	if store == null:
 		return
 	store.dispatch(U_NavigationActions.set_menu_panel(PANEL_SETTINGS))
-
-func _on_settings_back_pressed() -> void:
-	var store := get_store()
-	if store == null:
-		return
-	store.dispatch(U_NavigationActions.set_menu_panel(PANEL_MAIN))
 
 func _on_back_pressed() -> void:
 	if _active_panel != PANEL_MAIN:

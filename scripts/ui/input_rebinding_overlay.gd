@@ -6,6 +6,7 @@ const U_InputActions := preload("res://scripts/state/actions/u_input_actions.gd"
 const U_InputRebindUtils := preload("res://scripts/utils/u_input_rebind_utils.gd")
 const U_InputCaptureGuard := preload("res://scripts/utils/u_input_capture_guard.gd")
 const U_NavigationActions := preload("res://scripts/state/actions/u_navigation_actions.gd")
+const U_NavigationSelectors := preload("res://scripts/state/selectors/u_navigation_selectors.gd")
 const U_FocusConfigurator := preload("res://scripts/ui/helpers/u_focus_configurator.gd")
 const U_InputSelectors := preload("res://scripts/state/selectors/u_input_selectors.gd")
 const U_ButtonPromptRegistry := preload("res://scripts/ui/u_button_prompt_registry.gd")
@@ -704,10 +705,17 @@ func _on_close_pressed() -> void:
 	if _is_capturing:
 		_cancel_capture()
 	var store := get_store()
-	if store != null:
+	if store == null:
+		queue_free()
+		return
+
+	var nav_slice: Dictionary = store.get_state().get("navigation", {})
+	var overlay_stack: Array = U_NavigationSelectors.get_overlay_stack(nav_slice)
+
+	if not overlay_stack.is_empty():
 		store.dispatch(U_NavigationActions.close_top_overlay())
 	else:
-		queue_free()
+		store.dispatch(U_NavigationActions.return_to_main_menu())
 
 func _on_back_pressed() -> void:
 	_on_close_pressed()

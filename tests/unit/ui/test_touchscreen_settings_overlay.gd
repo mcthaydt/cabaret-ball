@@ -115,6 +115,7 @@ func test_apply_dispatches_update_to_store_and_closes_overlay() -> void:
 
 	_store.dispatched_actions.clear()
 	var close_count_before := _count_navigation_actions(U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY)
+	var return_count_before := _count_navigation_actions(U_NavigationActions.ACTION_RETURN_TO_MAIN_MENU)
 	overlay.call("_on_apply_pressed")
 	await _pump()
 	await _pump()
@@ -131,8 +132,10 @@ func test_apply_dispatches_update_to_store_and_closes_overlay() -> void:
 	assert_almost_eq(float(settings.get("button_opacity", 0.0)), 0.75, 0.001)
 	assert_almost_eq(float(settings.get("joystick_deadzone", 0.0)), 0.2, 0.001)
 
-	assert_eq(_count_navigation_actions(U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY), close_count_before + 1,
-		"Apply should dispatch navigation close action")
+	var close_count_after := _count_navigation_actions(U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY)
+	var return_count_after := _count_navigation_actions(U_NavigationActions.ACTION_RETURN_TO_MAIN_MENU)
+	assert_eq(close_count_after + return_count_after, close_count_before + return_count_before + 1,
+		"Apply should dispatch exactly one navigation close/return action")
 
 func test_reset_restores_default_values_and_calls_profile_manager() -> void:
 	var overlay := OverlayScene.instantiate()
@@ -207,11 +210,14 @@ func test_cancel_discards_changes_and_closes_overlay() -> void:
 
 	_store.dispatched_actions.clear()
 	var close_count_before := _count_navigation_actions(U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY)
+	var return_count_before := _count_navigation_actions(U_NavigationActions.ACTION_RETURN_TO_MAIN_MENU)
 	overlay.call("_on_cancel_pressed")
 	await _pump()
 
-	assert_eq(_count_navigation_actions(U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY), close_count_before + 1,
-		"Cancel should dispatch navigation close action")
+	var close_count_after := _count_navigation_actions(U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY)
+	var return_count_after := _count_navigation_actions(U_NavigationActions.ACTION_RETURN_TO_MAIN_MENU)
+	assert_eq(close_count_after + return_count_after, close_count_before + return_count_before + 1,
+		"Cancel should dispatch a single navigation close/return action")
 	assert_eq(_store.dispatched_actions.size(), 1, "Cancel should only dispatch navigation action")
 
 func test_device_changed_does_not_override_local_edits() -> void:

@@ -4,6 +4,7 @@ class_name EditTouchControlsOverlay
 
 const U_InputActions := preload("res://scripts/state/actions/u_input_actions.gd")
 const U_NavigationActions := preload("res://scripts/state/actions/u_navigation_actions.gd")
+const U_NavigationSelectors := preload("res://scripts/state/selectors/u_navigation_selectors.gd")
 const U_FocusConfigurator := preload("res://scripts/ui/helpers/u_focus_configurator.gd")
 
 @onready var _drag_mode_check: CheckButton = %DragModeCheck
@@ -206,8 +207,16 @@ func _restore_original_positions() -> void:
 
 func _close_overlay() -> void:
 	var store := get_store()
-	if store != null:
+	if store == null:
+		return
+
+	var nav_slice: Dictionary = store.get_state().get("navigation", {})
+	var overlay_stack: Array = U_NavigationSelectors.get_overlay_stack(nav_slice)
+
+	if not overlay_stack.is_empty():
 		store.dispatch(U_NavigationActions.close_top_overlay())
+	else:
+		store.dispatch(U_NavigationActions.return_to_main_menu())
 
 func _on_back_pressed() -> void:
 	_on_cancel_pressed()
