@@ -114,8 +114,7 @@ func test_apply_dispatches_update_to_store_and_closes_overlay() -> void:
 	joystick_deadzone_slider.value = 0.2
 
 	_store.dispatched_actions.clear()
-	var close_count_before := _count_navigation_actions(U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY)
-	var return_count_before := _count_navigation_actions(U_NavigationActions.ACTION_RETURN_TO_MAIN_MENU)
+	var close_count_before := _count_navigation_close_or_return_actions()
 	overlay.call("_on_apply_pressed")
 	await _pump()
 	await _pump()
@@ -132,9 +131,8 @@ func test_apply_dispatches_update_to_store_and_closes_overlay() -> void:
 	assert_almost_eq(float(settings.get("button_opacity", 0.0)), 0.75, 0.001)
 	assert_almost_eq(float(settings.get("joystick_deadzone", 0.0)), 0.2, 0.001)
 
-	var close_count_after := _count_navigation_actions(U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY)
-	var return_count_after := _count_navigation_actions(U_NavigationActions.ACTION_RETURN_TO_MAIN_MENU)
-	assert_eq(close_count_after + return_count_after, close_count_before + return_count_before + 1,
+	var close_count_after := _count_navigation_close_or_return_actions()
+	assert_eq(close_count_after, close_count_before + 1,
 		"Apply should dispatch exactly one navigation close/return action")
 
 func test_reset_restores_default_values_and_calls_profile_manager() -> void:
@@ -209,14 +207,12 @@ func test_cancel_discards_changes_and_closes_overlay() -> void:
 	joystick_size_slider.value = 1.9
 
 	_store.dispatched_actions.clear()
-	var close_count_before := _count_navigation_actions(U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY)
-	var return_count_before := _count_navigation_actions(U_NavigationActions.ACTION_RETURN_TO_MAIN_MENU)
+	var close_count_before := _count_navigation_close_or_return_actions()
 	overlay.call("_on_cancel_pressed")
 	await _pump()
 
-	var close_count_after := _count_navigation_actions(U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY)
-	var return_count_after := _count_navigation_actions(U_NavigationActions.ACTION_RETURN_TO_MAIN_MENU)
-	assert_eq(close_count_after + return_count_after, close_count_before + return_count_before + 1,
+	var close_count_after := _count_navigation_close_or_return_actions()
+	assert_eq(close_count_after, close_count_before + 1,
 		"Cancel should dispatch a single navigation close/return action")
 	assert_eq(_store.dispatched_actions.size(), 1, "Cancel should only dispatch navigation action")
 
@@ -295,4 +291,20 @@ func _count_navigation_actions(action_type: StringName) -> int:
 	for action in _store.dispatched_actions:
 		if action.get("type") == action_type:
 			count += 1
+	return count
+
+func _count_navigation_close_or_return_actions() -> int:
+	if _store == null:
+		return 0
+	var count := 0
+	for action in _store.dispatched_actions:
+		var action_type: StringName = action.get("type", StringName())
+		if action_type == U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY \
+				or action_type == U_NavigationActions.ACTION_RETURN_TO_MAIN_MENU:
+			count += 1
+		elif action_type == U_NavigationActions.ACTION_SET_SHELL:
+			var shell: StringName = action.get("shell", StringName())
+			var base_scene: StringName = action.get("base_scene_id", StringName())
+			if shell == StringName("main_menu") and base_scene == StringName("settings_menu"):
+				count += 1
 	return count

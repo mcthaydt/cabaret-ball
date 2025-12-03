@@ -12,7 +12,7 @@ const U_NavigationActions := preload("res://scripts/state/actions/u_navigation_a
 const U_InputSelectors := preload("res://scripts/state/selectors/u_input_selectors.gd")
 const M_SceneManager := preload("res://scripts/managers/m_scene_manager.gd")
 
-@onready var _back_button: Button = $VBoxContainer/BackButton
+@onready var _back_button: Button = %BackButton
 @onready var _input_profiles_button: Button = %InputProfilesButton
 @onready var _gamepad_settings_button: Button = %GamepadSettingsButton
 @onready var _touchscreen_settings_button: Button = %TouchscreenSettingsButton

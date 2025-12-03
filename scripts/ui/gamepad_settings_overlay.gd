@@ -194,7 +194,7 @@ func _close_overlay() -> void:
 	if not overlay_stack.is_empty():
 		store.dispatch(U_NavigationActions.close_top_overlay())
 	else:
-		store.dispatch(U_NavigationActions.return_to_main_menu())
+		store.dispatch(U_NavigationActions.set_shell(StringName("main_menu"), StringName("settings_menu")))
 
 func _on_back_pressed() -> void:
 	_close_overlay()

@@ -96,14 +96,12 @@ func test_save_button_closes_overlay_without_reverting_positions() -> void:
 	await _pump_frames(1)
 
 	var save_button: Button = overlay.get_node("%SaveButton")
-	var close_count_before := _count_navigation_actions(U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY)
-	var return_count_before := _count_navigation_actions(U_NavigationActions.ACTION_RETURN_TO_MAIN_MENU)
+	var close_count_before := _count_navigation_close_or_return_actions()
 	save_button.emit_signal("pressed")
 	await _pump_frames(1)
 
-	var close_count_after := _count_navigation_actions(U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY)
-	var return_count_after := _count_navigation_actions(U_NavigationActions.ACTION_RETURN_TO_MAIN_MENU)
-	assert_eq(close_count_after + return_count_after, close_count_before + return_count_before + 1,
+	var close_count_after := _count_navigation_close_or_return_actions()
+	assert_eq(close_count_after, close_count_before + 1,
 		"Save should dispatch a single navigation close/return action")
 	assert_true(joystick.position != original_joystick_pos, "Joystick should not revert when saving")
 
@@ -156,14 +154,12 @@ func test_cancel_button_reverts_positions_and_closes_overlay() -> void:
 	(buttons[0] as Control).position += Vector2(-10, -10)
 
 	var cancel_button: Button = overlay.get_node("%CancelButton")
-	var close_count_before := _count_navigation_actions(U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY)
-	var return_count_before := _count_navigation_actions(U_NavigationActions.ACTION_RETURN_TO_MAIN_MENU)
+	var close_count_before := _count_navigation_close_or_return_actions()
 	cancel_button.emit_signal("pressed")
 	await _pump_frames(1)
 
-	var close_count_after := _count_navigation_actions(U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY)
-	var return_count_after := _count_navigation_actions(U_NavigationActions.ACTION_RETURN_TO_MAIN_MENU)
-	assert_eq(close_count_after + return_count_after, close_count_before + return_count_before + 1,
+	var close_count_after := _count_navigation_close_or_return_actions()
+	assert_eq(close_count_after, close_count_before + 1,
 		"Cancel should dispatch a single navigation close/return action")
 	assert_vector_almost_eq(joystick.position, original_joystick_pos, 0.001, "Joystick position should revert on cancel")
 	assert_vector_almost_eq((buttons[0] as Control).position, original_button_pos, 0.001, "Button position should revert on cancel")
@@ -223,4 +219,20 @@ func _count_navigation_actions(action_type: StringName) -> int:
 	for action in _store.dispatched_actions:
 		if action.get("type") == action_type:
 			count += 1
+	return count
+
+func _count_navigation_close_or_return_actions() -> int:
+	if _store == null:
+		return 0
+	var count := 0
+	for action in _store.dispatched_actions:
+		var action_type: StringName = action.get("type", StringName())
+		if action_type == U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY \
+				or action_type == U_NavigationActions.ACTION_RETURN_TO_MAIN_MENU:
+			count += 1
+		elif action_type == U_NavigationActions.ACTION_SET_SHELL:
+			var shell: StringName = action.get("shell", StringName())
+			var base_scene: StringName = action.get("base_scene_id", StringName())
+			if shell == StringName("main_menu") and base_scene == StringName("settings_menu"):
+				count += 1
 	return count

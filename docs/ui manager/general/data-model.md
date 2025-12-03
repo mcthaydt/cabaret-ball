@@ -205,17 +205,17 @@ This table documents how existing screens/overlays should behave in the new arch
 
 | screen_id                 | kind    | scene_id                   | allowed_shells | allowed_parents        | close_mode                     | Notes                                           |
 |---------------------------|---------|----------------------------|----------------|------------------------|--------------------------------|------------------------------------------------|
-| `pause_menu`              | OVERLAY | `pause_menu`               | ["gameplay"]   | []                     | RESUME_TO_GAMEPLAY             | Top-level pause overlay                         |
-| `settings_menu_overlay`   | OVERLAY | `settings_menu`            | ["gameplay"]   | ["pause_menu"]         | RETURN_TO_PREVIOUS_OVERLAY     | Settings overlay opened from pause (only one that returns to pause) |
-| `input_profile_selector`  | OVERLAY | `input_profile_selector`   | ["gameplay"]   | ["pause_menu"]         | RESUME_TO_GAMEPLAY             | Apply profile and resume gameplay directly      |
-| `gamepad_settings`        | OVERLAY | `gamepad_settings_overlay` | ["gameplay"]   | ["pause_menu"]         | RESUME_TO_GAMEPLAY             | Resume gameplay directly on close               |
-| `touchscreen_settings`    | OVERLAY | `touchscreen_settings_overlay` | ["gameplay"]| ["pause_menu"]         | RESUME_TO_GAMEPLAY             | Resume gameplay directly on close               |
-| `input_rebinding`         | OVERLAY | `input_rebinding_overlay`  | ["gameplay"]   | ["pause_menu"]         | RESUME_TO_GAMEPLAY             | Resume gameplay directly on close               |
-| `edit_touch_controls`     | OVERLAY | `edit_touch_controls_overlay` | ["gameplay"]| ["pause_menu"]         | RESUME_TO_GAMEPLAY             | Layout editor resumes gameplay directly         |
+| `pause_menu`              | OVERLAY | `pause_menu`               | ["gameplay"]   | []                              | RESUME_TO_GAMEPLAY             | Top-level pause overlay                         |
+| `settings_menu_overlay`   | OVERLAY | `settings_menu`            | ["gameplay"]   | ["pause_menu"]                  | RETURN_TO_PREVIOUS_OVERLAY     | Settings overlay opened from pause              |
+| `input_profile_selector`  | OVERLAY | `input_profile_selector`   | ["gameplay"]   | ["pause_menu", "settings_menu_overlay"] | RETURN_TO_PREVIOUS_OVERLAY     | Returns to settings or pause overlay on close   |
+| `gamepad_settings`        | OVERLAY | `gamepad_settings`         | ["gameplay"]   | ["pause_menu", "settings_menu_overlay"] | RETURN_TO_PREVIOUS_OVERLAY     | Returns to settings or pause overlay on close   |
+| `touchscreen_settings`    | OVERLAY | `touchscreen_settings`     | ["gameplay"]   | ["pause_menu", "settings_menu_overlay"] | RETURN_TO_PREVIOUS_OVERLAY     | Returns to settings or pause overlay on close   |
+| `input_rebinding`         | OVERLAY | `input_rebinding`          | ["gameplay"]   | ["pause_menu", "settings_menu_overlay"] | RETURN_TO_PREVIOUS_OVERLAY     | Returns to settings or pause overlay on close   |
+| `edit_touch_controls`     | OVERLAY | `edit_touch_controls`      | ["gameplay"]   | ["pause_menu", "touchscreen_settings"]  | RETURN_TO_PREVIOUS_OVERLAY     | Returns to touchscreen or pause overlay on close|
 
-**Close Mode Summary**: Only `settings_menu_overlay` returns to pause_menu; all other overlays resume gameplay directly.
+**Close Mode Summary**: All sub-settings overlays (profiles, gamepad, touchscreen, rebinding, edit_touch_controls) now use `RETURN_TO_PREVIOUS_OVERLAY`, so closing them returns to their parent overlay (settings or pause) instead of resuming gameplay directly.
 
-> ⚠️ **BEHAVIORAL CHANGE**: The current codebase uses `push_overlay_with_return()` for ALL pause sub-overlays, meaning they all return to the pause menu when closed. The new architecture changes this: only `settings_menu_overlay` returns to pause; all others (gamepad_settings, touchscreen_settings, input_rebinding, input_profile_selector, edit_touch_controls) will resume gameplay directly when closed. This is an intentional UX simplification to reduce navigation depth. If this behavior change is not desired, update the `close_mode` values in the registry entries to `RETURN_TO_PREVIOUS_OVERLAY`.
+> ⚠️ **BEHAVIORAL CHANGE**: Earlier iterations resumed gameplay directly when closing sub-settings overlays. The current implementation routes all sub-settings overlays back to their parent (`settings_menu_overlay`, `touchscreen_settings`, or `pause_menu`), keeping the game paused until the user explicitly exits the pause/settings stack.
 
 ### 3.3 Panels (Conceptual)
 

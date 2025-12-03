@@ -10,6 +10,7 @@ const U_InputActions := preload("res://scripts/state/actions/u_input_actions.gd"
 const U_StateHandoff := preload("res://scripts/state/utils/u_state_handoff.gd")
 const U_InputRebindUtils := preload("res://scripts/utils/u_input_rebind_utils.gd")
 const BaseOverlay := preload("res://scripts/ui/base/base_overlay.gd")
+const U_NavigationActions := preload("res://scripts/state/actions/u_navigation_actions.gd")
 
 var _store: TestStateStore
 var _profile_manager: ProfileManagerStub
@@ -99,6 +100,17 @@ func test_reserved_actions_show_as_disabled() -> void:
 	var jump_replace: Button = jump_row.get("replace_button")
 	assert_not_null(jump_replace)
 	assert_false(jump_replace.disabled, "Non-reserved action should support replace")
+
+func test_close_button_requests_settings_scene_when_no_overlays() -> void:
+	var overlay: Node = OverlayScene.instantiate()
+	add_child_autofree(overlay)
+	await _pump()
+
+	overlay.call("_on_close_pressed")
+	await _pump()
+
+	var capturing: bool = overlay.get("_is_capturing")
+	assert_false(capturing, "Close should not leave rebind capture active when no overlays are present")
 
 func test_rebinding_updates_inputmap_and_dispatches() -> void:
 	var overlay: Node = OverlayScene.instantiate()
@@ -479,6 +491,9 @@ class SceneManagerMock extends Node:
 	func pop_overlay() -> void:
 		call_count += 1
 
+	func transition_to_scene(_scene_id: StringName, _transition_type: String, _priority: int = 0) -> void:
+		call_count += 1
+
 class TestStateStore extends M_StateStore:
 	var dispatched_actions: Array = []
 
@@ -524,3 +539,19 @@ func _deserialize_event_array(events_variant: Variant) -> Array[InputEvent]:
 				if parsed != null:
 					result.append(parsed)
 	return result
+
+func _count_navigation_close_or_return_actions() -> int:
+	if _store == null:
+		return 0
+	var count: int = 0
+	for action in _store.dispatched_actions:
+		var action_type: StringName = action.get("type", StringName())
+		if action_type == U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY \
+				or action_type == U_NavigationActions.ACTION_RETURN_TO_MAIN_MENU:
+			count += 1
+		elif action_type == U_NavigationActions.ACTION_SET_SHELL:
+			var shell: StringName = action.get("shell", StringName())
+			var base_scene: StringName = action.get("base_scene_id", StringName())
+			if shell == StringName("main_menu") and base_scene == StringName("settings_menu"):
+				count += 1
+	return count

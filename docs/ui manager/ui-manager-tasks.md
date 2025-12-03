@@ -694,10 +694,10 @@ These tasks remove direct pause/ESC input handling from existing systems, consol
     - [x] Main menu → Play → gameplay hub loads
     - [x] Gameplay → ESC → pause overlay appears, game paused
     - [x] Pause → Settings → settings overlay (should NOT see pause underneath), back → returns to pause
-    - [x] Pause → Gamepad Settings → overlay, back → resumes gameplay directly
-    - [x] Pause → Touchscreen Settings → overlay, back → resumes gameplay directly
-    - [x] Pause → Rebinding → overlay, back → resumes gameplay directly
-    - [x] Pause → Input Profiles → overlay, apply → resumes gameplay directly
+    - [x] Pause → Settings → Gamepad Settings overlay, back → returns to Settings overlay (game remains paused)
+    - [x] Pause → Settings → Touchscreen Settings overlay, back → returns to Settings overlay (game remains paused)
+    - [x] Pause → Settings → Rebinding overlay, back → returns to Settings overlay (game remains paused)
+    - [x] Pause → Settings → Input Profiles overlay, apply → returns to Settings overlay (game remains paused)
     - [x] Pause → Resume → gameplay resumes
     - [x] Gameplay → death → Game Over screen
     - [x] Game Over → Retry → gameplay resumes from checkpoint
@@ -708,8 +708,8 @@ These tasks remove direct pause/ESC input handling from existing systems, consol
     - [x] Main menu → Settings panel → shows settings, back → returns to main panel
     - [x] Main menu root panel → back key → no-op
   - **Mobile-specific**:
-    - [x] Edit Touch Controls overlay → close → resumes gameplay
-    - [x] Touchscreen Settings overlay → close → resumes gameplay
+    - [x] Edit Touch Controls overlay → close → returns to Touchscreen Settings overlay (game remains paused)
+    - [x] Touchscreen Settings overlay → close → returns to Settings or pause overlay, depending on parent
   - **Acceptance**: All 17+ test cases pass with both input methods
 
 - [x] T062 [DOC] Update all related documentation.

@@ -67,14 +67,14 @@ func test_apply_updates_state_settings() -> void:
 	vibration_slider.value = 0.25
 
 	_store.dispatched_actions.clear()
+	var close_before := _count_navigation_close_or_return_actions()
 	overlay.call("_on_apply_pressed")
 	await _pump()
 	await _pump()
 
 	assert_eq(_store.dispatched_actions.size(), 5, "Overlay should dispatch four input actions plus one navigation close action")
-	var nav_close_count := _count_navigation_actions(U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY)
-	var nav_return_count := _count_navigation_actions(U_NavigationActions.ACTION_RETURN_TO_MAIN_MENU)
-	assert_eq(nav_close_count + nav_return_count, 1, "Apply should dispatch a single navigation close/navigation return action")
+	var close_after := _count_navigation_close_or_return_actions()
+	assert_eq(close_after, close_before + 1, "Apply should dispatch a single navigation close/navigation return action")
 
 func _pump() -> void:
 	await get_tree().process_frame
@@ -99,4 +99,20 @@ func _count_navigation_actions(action_type: StringName) -> int:
 	for action in _store.dispatched_actions:
 		if action.get("type") == action_type:
 			count += 1
+	return count
+
+func _count_navigation_close_or_return_actions() -> int:
+	if _store == null:
+		return 0
+	var count := 0
+	for action in _store.dispatched_actions:
+		var action_type: StringName = action.get("type", StringName())
+		if action_type == U_NavigationActions.ACTION_CLOSE_TOP_OVERLAY \
+				or action_type == U_NavigationActions.ACTION_RETURN_TO_MAIN_MENU:
+			count += 1
+		elif action_type == U_NavigationActions.ACTION_SET_SHELL:
+			var shell: StringName = action.get("shell", StringName())
+			var base_scene: StringName = action.get("base_scene_id", StringName())
+			if shell == StringName("main_menu") and base_scene == StringName("settings_menu"):
+				count += 1
 	return count

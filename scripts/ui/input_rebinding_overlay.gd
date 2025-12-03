@@ -11,6 +11,7 @@ const U_FocusConfigurator := preload("res://scripts/ui/helpers/u_focus_configura
 const U_InputSelectors := preload("res://scripts/state/selectors/u_input_selectors.gd")
 const U_ButtonPromptRegistry := preload("res://scripts/ui/u_button_prompt_registry.gd")
 const M_InputDeviceManager := preload("res://scripts/managers/m_input_device_manager.gd")
+const M_SceneManager := preload("res://scripts/managers/m_scene_manager.gd")
 const DEFAULT_REBIND_SETTINGS: Resource = preload("res://resources/input/rebind_settings/default_rebind_settings.tres")
 
 @onready var _action_list: VBoxContainer = %ActionList
@@ -704,21 +705,42 @@ func _update_status(text: String) -> void:
 func _on_close_pressed() -> void:
 	if _is_capturing:
 		_cancel_capture()
-	var store := get_store()
+	_ensure_store_reference()
+	var store := _store
 	if store == null:
-		queue_free()
+		_transition_back_to_settings_scene()
 		return
 
 	var nav_slice: Dictionary = store.get_state().get("navigation", {})
 	var overlay_stack: Array = U_NavigationSelectors.get_overlay_stack(nav_slice)
+	var shell: StringName = U_NavigationSelectors.get_shell(nav_slice)
 
 	if not overlay_stack.is_empty():
 		store.dispatch(U_NavigationActions.close_top_overlay())
 	else:
-		store.dispatch(U_NavigationActions.return_to_main_menu())
+		# Main menu path: when opened from the main menu settings panel,
+		# navigation overlays are not used. Prefer a direct transition back
+		# to the standalone settings scene so the Scene Manager can keep
+		# navigation/base_scene_id in sync.
+		if shell == StringName("main_menu"):
+			_transition_back_to_settings_scene()
+		else:
+			store.dispatch(U_NavigationActions.set_shell(StringName("main_menu"), StringName("settings_menu")))
 
 func _on_back_pressed() -> void:
 	_on_close_pressed()
+
+func _transition_back_to_settings_scene() -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	var managers := tree.get_nodes_in_group("scene_manager")
+	if managers.is_empty():
+		return
+	var scene_manager := managers[0] as M_SceneManager
+	if scene_manager == null:
+		return
+	scene_manager.transition_to_scene(StringName("settings_menu"), "fade", M_SceneManager.Priority.HIGH)
 
 func _process(delta: float) -> void:
 	# Preserve base menu behavior (analog repeat on left stick)

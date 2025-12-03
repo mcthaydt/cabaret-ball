@@ -21,7 +21,7 @@ func after_each() -> void:
 func test_main_panel_visible_by_default() -> void:
 	var store := await _create_state_store()
 	var menu := await _create_main_menu()
-	var main_panel: Control = menu.get_node("MainPanel")
+	var main_panel: Control = menu.get_node("CenterContainer/MainPanel")
 	var settings_panel: Control = menu.get_node("SettingsPanel")
 
 	assert_not_null(store, "State store should exist for main menu tests")
@@ -31,7 +31,7 @@ func test_main_panel_visible_by_default() -> void:
 func test_dispatching_panel_change_updates_visibility() -> void:
 	var store := await _create_state_store()
 	var menu := await _create_main_menu()
-	var main_panel: Control = menu.get_node("MainPanel")
+	var main_panel: Control = menu.get_node("CenterContainer/MainPanel")
 	var settings_panel: Control = menu.get_node("SettingsPanel")
 
 	store.dispatch(U_NavigationActions.set_menu_panel(StringName("menu/settings")))
@@ -43,7 +43,7 @@ func test_dispatching_panel_change_updates_visibility() -> void:
 func test_settings_button_switches_to_settings_panel() -> void:
 	var store := await _create_state_store()
 	var menu := await _create_main_menu()
-	var settings_button: Button = menu.get_node("MainPanel/SettingsButton")
+	var settings_button: Button = menu.get_node("CenterContainer/MainPanel/SettingsButton")
 
 	settings_button.emit_signal("pressed")
 	await wait_process_frames(2)
@@ -55,8 +55,8 @@ func test_settings_button_switches_to_settings_panel() -> void:
 func test_back_button_returns_to_main_panel() -> void:
 	var store := await _create_state_store()
 	var menu := await _create_main_menu()
-	var settings_button: Button = menu.get_node("MainPanel/SettingsButton")
-	var back_button: Button = menu.get_node("SettingsPanel/SettingsContent/VBoxContainer/BackButton")
+	var settings_button: Button = menu.get_node("CenterContainer/MainPanel/SettingsButton")
+	var back_button: Button = menu.get_node("SettingsPanel/SettingsContent/CenterContainer/VBoxContainer/BackButton")
 
 	settings_button.emit_signal("pressed")
 	await wait_process_frames(2)
@@ -70,7 +70,7 @@ func test_back_button_returns_to_main_panel() -> void:
 func test_play_button_dispatches_start_game_action() -> void:
 	var store := await _create_state_store()
 	var menu := await _create_main_menu()
-	var play_button: Button = menu.get_node("MainPanel/PlayButton")
+	var play_button: Button = menu.get_node("CenterContainer/MainPanel/PlayButton")
 
 	play_button.emit_signal("pressed")
 	await wait_process_frames(2)
@@ -107,7 +107,7 @@ func _create_main_menu() -> Control:
 func test_ignores_non_menu_panel_ids() -> void:
 	var store := await _create_state_store()
 	var menu := await _create_main_menu()
-	var main_panel: Control = menu.get_node("MainPanel")
+	var main_panel: Control = menu.get_node("CenterContainer/MainPanel")
 	var settings_panel: Control = menu.get_node("SettingsPanel")
 
 	# Verify initial state: main panel visible
