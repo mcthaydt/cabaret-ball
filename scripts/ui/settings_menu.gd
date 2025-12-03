@@ -11,6 +11,7 @@ const U_NavigationSelectors := preload("res://scripts/state/selectors/u_navigati
 const U_NavigationActions := preload("res://scripts/state/actions/u_navigation_actions.gd")
 const U_InputSelectors := preload("res://scripts/state/selectors/u_input_selectors.gd")
 const M_SceneManager := preload("res://scripts/managers/m_scene_manager.gd")
+const M_InputDeviceManager := preload("res://scripts/managers/m_input_device_manager.gd")
 
 @onready var _back_button: Button = %BackButton
 @onready var _input_profiles_button: Button = %InputProfilesButton
@@ -82,12 +83,16 @@ func _on_rebind_controls_pressed() -> void:
 
 func _update_button_visibility(state: Dictionary) -> void:
 	var has_gamepad: bool = U_InputSelectors.is_gamepad_connected(state)
+	var device_type: int = U_InputSelectors.get_active_device_type(state)
 	var is_mobile: bool = OS.has_feature("mobile")
+	var is_touch_only: bool = (device_type == M_InputDeviceManager.DeviceType.TOUCHSCREEN and not has_gamepad)
 
 	if _gamepad_settings_button != null:
 		_gamepad_settings_button.visible = has_gamepad
 	if _touchscreen_settings_button != null:
 		_touchscreen_settings_button.visible = is_mobile
+	if _rebind_controls_button != null:
+		_rebind_controls_button.visible = not is_touch_only
 
 func _open_settings_target(overlay_id: StringName, scene_id: StringName) -> void:
 	var store := get_store()

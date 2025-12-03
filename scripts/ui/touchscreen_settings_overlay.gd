@@ -54,6 +54,7 @@ func _on_panel_ready() -> void:
 	_build_preview()
 	_connect_signals()
 	_update_preview_from_sliders()
+	_update_edit_layout_visibility()
 
 func _exit_tree() -> void:
 	if _store_unsubscribe != Callable() and _store_unsubscribe.is_valid():
@@ -174,6 +175,22 @@ func _connect_signals() -> void:
 	_cancel_button.pressed.connect(_on_cancel_pressed)
 	_reset_button.pressed.connect(_on_reset_pressed)
 	_edit_layout_button.pressed.connect(_on_edit_layout_pressed)
+
+func _update_edit_layout_visibility() -> void:
+	if _edit_layout_button == null:
+		return
+
+	var store := get_store()
+	if store == null:
+		_edit_layout_button.visible = true
+		return
+
+	var nav_state: Dictionary = store.get_slice(StringName("navigation"))
+	var shell: StringName = U_NavigationSelectors.get_shell(nav_state)
+
+	# Hide Edit Layout when accessing touchscreen settings from main menu,
+	# since no on-screen controls are visible in that context.
+	_edit_layout_button.visible = (shell == StringName("gameplay"))
 
 func _on_state_changed(_action: Dictionary, state: Dictionary) -> void:
 	if state == null:
