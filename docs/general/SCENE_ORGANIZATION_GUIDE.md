@@ -19,12 +19,12 @@ This guide documents the standardized scene tree organization used throughout Pr
 
 ---
 
-## Standardized Node Tree Structure
+## Standardized Node Tree Structure (Gameplay Scenes)
 
-All gameplay scenes should follow this hierarchy:
+All **gameplay scenes** (e.g., `gameplay_base.tscn`, `gameplay_exterior.tscn`, `gameplay_interior_house.tscn`) should follow this hierarchy:
 
 ```
-Main (Node3D) [main_root_node.gd]
+GameplayRoot (Node3D) [main_root_node.gd]
 ├─ SceneObjects (Node3D) [scene_objects_group.gd]
 │  ├─ SO_Floor (CSGBox3D)
 │  ├─ SO_Block (CSGBox3D)
@@ -70,6 +70,49 @@ Main (Node3D) [main_root_node.gd]
 └─ HUD (CanvasLayer or Control)
    └─ (UI elements)
 ```
+
+`GameplayRoot` is the canonical root name for gameplay scenes; it must use the `main_root_node.gd` marker script.
+
+---
+
+## Root Scene Organization (`scenes/root.tscn`)
+
+The **root scene** persists across the entire session and owns global managers and containers. It follows this structure:
+
+```
+Root (Node) [main_root_node.gd]
+├─ Managers (Node) [managers_group.gd]
+│  ├─ M_StateStore
+│  ├─ M_CursorManager
+│  ├─ M_SceneManager
+│  ├─ M_SpawnManager
+│  ├─ M_CameraManager
+│  ├─ M_InputProfileManager
+│  ├─ M_InputDeviceManager
+│  └─ UIInputHandler
+│
+├─ ActiveSceneContainer (Node) [active_scene_container.gd]
+│  └─ (Gameplay / UI scenes loaded by M_SceneManager)
+│
+├─ UIOverlayStack (CanvasLayer)
+│  └─ (Overlay UI scenes pushed by Scene Manager)
+│
+├─ TransitionOverlay (CanvasLayer)
+│  └─ TransitionColorRect (ColorRect)
+│
+├─ LoadingOverlay (CanvasLayer)
+│  └─ LoadingScreen (instanced loading_screen.tscn)
+│
+└─ MobileControls (CanvasLayer)
+   └─ (Virtual joystick/buttons for mobile)
+```
+
+**Responsibilities:**
+- `Managers` contains all global managers; no other scene should instantiate a second copy of these classes.
+- `ActiveSceneContainer` hosts gameplay and UI scenes that come and go.
+- `UIOverlayStack` holds stacked overlays (pause, settings, rebinding, etc.).
+- `TransitionOverlay` and `LoadingOverlay` are dedicated to visual transitions.
+- `MobileControls` provides device‑aware virtual controls and must follow Input/UI Manager patterns.
 
 ---
 
@@ -200,7 +243,9 @@ All nodes should use **descriptive names with category prefixes** for clarity:
 | **Scene Objects** | `SO_` | `SO_Floor`, `SO_Block` | Static geometry |
 | **Environment** | `Env_` | `Env_WorldEnvironment`, `Env_DirectionalLight3D` | Lighting/environment nodes |
 | **UI** | `HUD` or `UI_` | `HUD`, `UI_PauseMenu` | User interface elements |
-| **Scene Files** | *(none)* | `player_template.tscn`, `base_scene_template.tscn` | snake_case, descriptive |
+| **Scene Files (Gameplay)** | `gameplay_` | `gameplay_base.tscn`, `gameplay_exterior.tscn` | Gameplay scenes |
+| **Scene Files (UI)** | `ui_` | `ui_main_menu.tscn`, `ui_pause_menu.tscn` | UI scenes |
+| **Scene Files (Debug)** | `debug_` | `debug_state_overlay.tscn` | Debug/testing scenes |
 
 ### Special Cases
 
@@ -386,9 +431,11 @@ The upcoming Scene Manager system will:
 
 ## Quick Reference
 
-### Standard Scene Hierarchy
+### Standard Scene Hierarchies
+
+Gameplay scenes:
 ```
-Main
+GameplayRoot
 ├─ SceneObjects
 ├─ Environment
 ├─ Systems
@@ -399,6 +446,17 @@ Main
 ├─ Managers
 ├─ Entities
 └─ HUD
+```
+
+Root scene:
+```
+Root
+├─ Managers
+├─ ActiveSceneContainer
+├─ UIOverlayStack
+├─ TransitionOverlay
+├─ LoadingOverlay
+└─ MobileControls
 ```
 
 ### Node Prefix Quick Lookup
