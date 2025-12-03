@@ -119,13 +119,13 @@ func _configure_focus_neighbors() -> void:
 		U_FocusConfigurator.configure_vertical_focus(vertical_controls, false)
 
 	var buttons: Array[Control] = []
-	if _cancel_button != null:
+	if _cancel_button != null and _cancel_button.visible:
 		buttons.append(_cancel_button)
-	if _reset_button != null:
+	if _reset_button != null and _reset_button.visible:
 		buttons.append(_reset_button)
-	if _edit_layout_button != null:
+	if _edit_layout_button != null and _edit_layout_button.visible:
 		buttons.append(_edit_layout_button)
-	if _apply_button != null:
+	if _apply_button != null and _apply_button.visible:
 		buttons.append(_apply_button)
 
 	if not buttons.is_empty():
@@ -183,6 +183,7 @@ func _update_edit_layout_visibility() -> void:
 	var store := get_store()
 	if store == null:
 		_edit_layout_button.visible = true
+		_configure_focus_neighbors()
 		return
 
 	var nav_state: Dictionary = store.get_slice(StringName("navigation"))
@@ -191,6 +192,7 @@ func _update_edit_layout_visibility() -> void:
 	# Hide Edit Layout when accessing touchscreen settings from main menu,
 	# since no on-screen controls are visible in that context.
 	_edit_layout_button.visible = (shell == StringName("gameplay"))
+	_configure_focus_neighbors()
 
 func _on_state_changed(_action: Dictionary, state: Dictionary) -> void:
 	if state == null:
@@ -312,6 +314,7 @@ func _on_edit_layout_pressed() -> void:
 		store.dispatch(U_NavigationActions.open_overlay(StringName("edit_touch_controls")))
 
 func _on_back_pressed() -> void:
+	print("[TouchscreenSettingsOverlay] _on_back_pressed invoked")
 	_close_overlay()
 
 func _is_position_only_settings_update(settings_payload: Dictionary) -> bool:
@@ -419,12 +422,44 @@ func _log_local_slider_edit(_field: String, _value: float) -> void:
 func _close_overlay() -> void:
 	var store := get_store()
 	if store == null:
+		print("[TouchscreenSettingsOverlay] _close_overlay store is null; aborting")
 		return
 
-	var nav_slice: Dictionary = store.get_state().get("navigation", {})
+	var state: Dictionary = store.get_state()
+	var nav_slice: Dictionary = state.get("navigation", {})
 	var overlay_stack: Array = U_NavigationSelectors.get_overlay_stack(nav_slice)
+	var shell: StringName = U_NavigationSelectors.get_shell(nav_slice)
+
+	print(
+		"[TouchscreenSettingsOverlay] _close_overlay shell=%s overlay_stack_size=%d" % [
+			str(shell),
+			overlay_stack.size()
+		]
+	)
 
 	if not overlay_stack.is_empty():
 		store.dispatch(U_NavigationActions.close_top_overlay())
+		return
+
+	# Main menu flow (standalone settings scenes):
+	# - When accessed from the main menu, touchscreen_settings runs as a base
+	#   scene (no overlays). Closing should reliably return to the settings_menu
+	#   scene even if navigation already thinks base_scene_id is settings_menu.
+	# - To guarantee this, request a scene transition via SceneManager AND
+	#   update the navigation shell to settings_menu.
+	if shell == StringName("main_menu"):
+		var tree := get_tree()
+		if tree != null:
+			var managers: Array = tree.get_nodes_in_group("scene_manager")
+			if not managers.is_empty():
+				var scene_manager = managers[0]
+				if scene_manager != null and scene_manager.has_method("transition_to_scene"):
+					scene_manager.transition_to_scene(
+						StringName("settings_menu"),
+						"fade",
+						1  # HIGH priority to match other back-navigation flows
+					)
+
+		store.dispatch(U_NavigationActions.set_shell(StringName("main_menu"), StringName("settings_menu")))
 	else:
 		store.dispatch(U_NavigationActions.set_shell(StringName("main_menu"), StringName("settings_menu")))

@@ -151,6 +151,19 @@
   - `scripts/ui/pause_menu.gd` - Vertical focus for 7 menu options
   - `scripts/ui/game_over.gd` - Horizontal focus for Retry/Menu buttons
 
+### Dynamic Button Visibility and Focus Chains
+
+- **Problem**: When using `U_FocusConfigurator.configure_horizontal_focus()` or `configure_vertical_focus()` with controls that may be hidden at runtime, the helper still wires focus neighbors for ALL controls passed in. If one of those controls later becomes invisible (e.g., `Edit Layout` hidden in touchscreen settings when opened from main menu), gamepad navigation will try to move focus into an invisible control, causing the focus “cursor” to appear stuck or to skip visible buttons unexpectedly.
+
+- **Solution**:
+  - Always build the focus list from **visible** controls only. Filter out any controls where `control.visible == false` before calling `U_FocusConfigurator`.
+  - When visibility changes at runtime (e.g., toggling a button on/off based on shell or device type), immediately re-run `_configure_focus_neighbors()` so focus neighbors match the new layout.
+  - Use the same pattern for bottom-row button bars (Cancel/Reset/Apply) and tab strips so that hiding a single button never leaves it in the focus chain.
+
+- **Why it matters**:
+  - BaseMenuScreen’s analog stick navigation relies entirely on focus neighbors. If hidden controls remain in the neighbor chain, navigation appears broken even though the buttons still work when clicked.
+  - This surfaced in `TouchscreenSettingsOverlay`: `Edit Layout` is hidden in main-menu flow, but remained in the horizontal focus list. The fix was to include only visible buttons when configuring focus and to re-run configuration whenever `Edit Layout` visibility changes.
+
 ## State Store Pitfalls (Redux-style)
 
 - Signal batching timing

@@ -216,6 +216,78 @@ func test_cancel_discards_changes_and_closes_overlay() -> void:
 		"Cancel should dispatch a single navigation close/return action")
 	assert_eq(_store.dispatched_actions.size(), 1, "Cancel should only dispatch navigation action")
 
+func test_cancel_from_main_menu_requests_settings_menu_scene_transition() -> void:
+	var overlay := OverlayScene.instantiate()
+	add_child_autofree(overlay)
+	await _pump()
+	await _refresh_overlay_state(overlay)
+
+	# Simulate main_menu shell with touchscreen_settings as the active base scene
+	var nav_slice: Dictionary = _store.get_slice(StringName("navigation"))
+	nav_slice["shell"] = StringName("main_menu")
+	nav_slice["base_scene_id"] = StringName("touchscreen_settings")
+	nav_slice["overlay_stack"] = []
+	nav_slice["overlay_return_stack"] = []
+	nav_slice["active_menu_panel"] = StringName("menu/main")
+	_store._state[StringName("navigation")] = nav_slice.duplicate(true)
+
+	# Stub SceneManager so we can observe scene transition requests
+	var manager_stub := SceneManagerStub.new()
+	manager_stub.add_to_group("scene_manager")
+	add_child_autofree(manager_stub)
+
+	_store.dispatched_actions.clear()
+	overlay.call("_on_cancel_pressed")
+	await _pump()
+
+	assert_eq(
+		manager_stub.last_scene_id,
+		StringName("settings_menu"),
+		"Cancel from main menu touchscreen_settings should request transition back to settings_menu scene"
+	)
+
+func test_horizontal_navigation_skips_hidden_edit_layout_in_main_menu() -> void:
+	var overlay := OverlayScene.instantiate()
+	add_child_autofree(overlay)
+	await _pump()
+	await _refresh_overlay_state(overlay)
+
+	var cancel_button: Button = overlay.get_node("%CancelButton")
+	var reset_button: Button = overlay.get_node("%ResetButton")
+	var apply_button: Button = overlay.get_node("%ApplyButton")
+	var edit_layout_button: Button = overlay.get_node("%EditLayoutButton")
+
+	assert_not_null(cancel_button)
+	assert_not_null(reset_button)
+	assert_not_null(apply_button)
+	assert_not_null(edit_layout_button)
+	assert_false(
+		edit_layout_button.visible,
+		"Edit Layout should be hidden when touchscreen settings are opened from main menu"
+	)
+
+	# Start with Cancel focused and navigate horizontally to the right.
+	cancel_button.grab_focus()
+	await _pump()
+
+	overlay.call("_navigate_focus", StringName("ui_right"))
+	await _pump()
+	var focused: Control = overlay.get_viewport().gui_get_focus_owner()
+	assert_eq(focused, reset_button,
+		"Right from Cancel should focus Reset when Edit Layout is hidden")
+
+	overlay.call("_navigate_focus", StringName("ui_right"))
+	await _pump()
+	focused = overlay.get_viewport().gui_get_focus_owner()
+	assert_eq(focused, apply_button,
+		"Right from Reset should focus Apply when Edit Layout is hidden")
+
+	overlay.call("_navigate_focus", StringName("ui_right"))
+	await _pump()
+	focused = overlay.get_viewport().gui_get_focus_owner()
+	assert_eq(focused, cancel_button,
+		"Right from Apply should wrap back to Cancel")
+
 func test_device_changed_does_not_override_local_edits() -> void:
 	var overlay := OverlayScene.instantiate()
 	add_child_autofree(overlay)
@@ -270,6 +342,16 @@ func _refresh_overlay_state(overlay: Node) -> void:
 func assert_vector_almost_eq(a: Vector2, b: Vector2, tolerance: float, message: String = "") -> void:
 	assert_almost_eq(a.x, b.x, tolerance, message + " (x)")
 	assert_almost_eq(a.y, b.y, tolerance, message + " (y)")
+
+class SceneManagerStub extends Node:
+	var last_scene_id: StringName = StringName("")
+	var last_transition_type: String = ""
+	var last_priority: int = -1
+
+	func transition_to_scene(scene_id: StringName, transition_type: String, priority: int = 0) -> void:
+		last_scene_id = scene_id
+		last_transition_type = transition_type
+		last_priority = priority
 
 class ProfileManagerMock extends Node:
 	var reset_called: bool = false

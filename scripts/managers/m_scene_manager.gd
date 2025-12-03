@@ -982,7 +982,8 @@ func _reconcile_navigation_state(nav_state: Dictionary) -> void:
 	if nav_state.is_empty():
 		return
 	_latest_navigation_state = nav_state.duplicate(true)
-	_reconcile_base_scene(nav_state.get("base_scene_id", StringName("")))
+	var desired_scene_id: StringName = nav_state.get("base_scene_id", StringName(""))
+	_reconcile_base_scene(desired_scene_id)
 	var desired_overlay_ids: Array[StringName] = _coerce_string_name_array(nav_state.get("overlay_stack", []))
 	var current_stack: Array[StringName] = _get_overlay_scene_ids_from_ui()
 	_reconcile_overlay_stack(desired_overlay_ids, current_stack)
@@ -1270,7 +1271,23 @@ func _sync_navigation_shell_with_scene(scene_id: StringName) -> void:
 
 	var current_shell: StringName = nav_state.get("shell", StringName(""))
 	var current_scene: StringName = nav_state.get("base_scene_id", StringName(""))
+
+	# If navigation already matches the loaded scene, no reconciliation needed.
 	if current_shell == desired_shell and current_scene == scene_id:
+		return
+
+	# When a navigation-driven transition is in progress, the navigation slice
+	# is the source of truth. Avoid clobbering a newer navigation target with
+	# stale scene_id values from earlier transitions.
+	if _navigation_pending_scene_id != StringName(""):
+		# If navigation has requested a DIFFERENT scene than the one that just
+		# finished loading, skip reconciliation entirely. This prevents races
+		# where a late _sync_navigation_shell_with_scene call for a previous
+		# scene overwrites the more recent navigation target.
+		if _navigation_pending_scene_id != scene_id:
+			return
+		# If the pending navigation target matches the scene_id, the reducer
+		# has already updated base_scene_id. Treat this as in-sync and skip.
 		return
 
 	match scene_type:

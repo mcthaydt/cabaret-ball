@@ -8,6 +8,7 @@ const M_CursorManager := preload("res://scripts/managers/m_cursor_manager.gd")
 const M_SpawnManager := preload("res://scripts/managers/m_spawn_manager.gd")
 const M_CameraManager := preload("res://scripts/managers/m_camera_manager.gd")
 const U_NavigationActions := preload("res://scripts/state/actions/u_navigation_actions.gd")
+const U_NavigationSelectors := preload("res://scripts/state/selectors/u_navigation_selectors.gd")
 
 const OVERLAY_META_SCENE_ID := StringName("_scene_manager_overlay_scene_id")
 
@@ -144,6 +145,78 @@ func test_navigation_victory_skip_flow() -> void:
 
 	var scene_state: Dictionary = _store.get_state().get("scene", {})
 	assert_eq(scene_state.get("current_scene_id"), StringName("main_menu"), "Skip to menu should load main menu scene")
+
+
+func test_sync_navigation_shell_does_not_override_pending_navigation() -> void:
+	var manager := await _spawn_scene_manager()
+
+	# Simulate navigation already requesting settings_menu while a previous
+	# scene (e.g., touchscreen_settings) finishes loading.
+	var nav_slice: Dictionary = _store.get_slice(StringName("navigation"))
+	nav_slice["shell"] = StringName("main_menu")
+	nav_slice["base_scene_id"] = StringName("settings_menu")
+	_store._state["navigation"] = nav_slice.duplicate(true)
+
+	manager._navigation_pending_scene_id = StringName("settings_menu")
+
+	# A transition for the previous scene completes; SceneManager attempts to
+	# sync navigation shell to that scene_id. This should NOT clobber the
+	# pending navigation target (settings_menu).
+	manager._sync_navigation_shell_with_scene(StringName("touchscreen_settings"))
+
+	nav_slice = _store.get_slice(StringName("navigation"))
+	assert_eq(
+		nav_slice.get("base_scene_id"),
+		StringName("settings_menu"),
+		"Syncing shell for a previous scene must not override a newer pending navigation target"
+	)
+
+func test_manual_transition_to_touchscreen_settings_aligns_navigation() -> void:
+	var manager := await _spawn_scene_manager()
+
+	# Emulate runtime post-bootstrap state: navigation already synced and no
+	# pending navigation-driven transition. Tests use skip_initial_scene_load,
+	# so we explicitly clear pending state and normalize navigation here.
+	manager._initial_navigation_synced = true
+	manager._navigation_pending_scene_id = StringName("")
+
+	var nav_slice: Dictionary = _store.get_slice(StringName("navigation"))
+	nav_slice["shell"] = StringName("main_menu")
+	nav_slice["base_scene_id"] = StringName("main_menu")
+	nav_slice["overlay_stack"] = []
+	nav_slice["overlay_return_stack"] = []
+	nav_slice["active_menu_panel"] = StringName("menu/main")
+	_store._state[StringName("navigation")] = nav_slice.duplicate(true)
+
+	# Transition into settings_menu as a standalone UI scene (main menu flow).
+	manager.transition_to_scene(StringName("settings_menu"), "instant", M_SceneManager.Priority.HIGH)
+	await _await_scene(StringName("settings_menu"), 30)
+
+	nav_slice = _store.get_slice(StringName("navigation"))
+	var shell: StringName = U_NavigationSelectors.get_shell(nav_slice)
+	var base_scene_id: StringName = U_NavigationSelectors.get_base_scene_id(nav_slice)
+
+	assert_eq(shell, StringName("main_menu"), "Settings menu should run in main_menu shell")
+	assert_eq(
+		base_scene_id,
+		StringName("settings_menu"),
+		"Navigation base_scene_id should track settings_menu after manual transition"
+	)
+
+	# From settings_menu, transition directly to touchscreen_settings (main menu flow).
+	manager.transition_to_scene(StringName("touchscreen_settings"), "instant", M_SceneManager.Priority.HIGH)
+	await _await_scene(StringName("touchscreen_settings"), 30)
+
+	nav_slice = _store.get_slice(StringName("navigation"))
+	shell = U_NavigationSelectors.get_shell(nav_slice)
+	base_scene_id = U_NavigationSelectors.get_base_scene_id(nav_slice)
+
+	assert_eq(shell, StringName("main_menu"), "Touchscreen settings should run in main_menu shell")
+	assert_eq(
+		base_scene_id,
+		StringName("touchscreen_settings"),
+		"Navigation base_scene_id should track touchscreen_settings after manual transition"
+	)
 
 func _get_top_overlay_scene_id() -> StringName:
 	if _ui_overlay_stack == null or _ui_overlay_stack.get_child_count() == 0:
