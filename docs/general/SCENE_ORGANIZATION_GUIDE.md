@@ -114,6 +114,21 @@ Root (Node) [main_root_node.gd]
 - `TransitionOverlay` and `LoadingOverlay` are dedicated to visual transitions.
 - `MobileControls` provides device‑aware virtual controls and must follow Input/UI Manager patterns.
 
+**Manager Initialization Order:**
+
+Managers have dependencies and must initialize in this specific sequence (as ordered in the scene tree):
+
+1. **M_StateStore** (MUST be first) - Other managers dispatch actions and read state during `_ready()`
+2. **M_CursorManager** - Manages cursor visibility/capture state
+3. **M_SceneManager** - Coordinates scene transitions and overlay stack
+4. **M_SpawnManager** - Handles player spawn point restoration
+5. **M_CameraManager** - Manages camera blending during transitions
+6. **M_InputProfileManager** - Manages input profile state and persistence
+7. **M_InputDeviceManager** - Detects and tracks active input devices
+8. **M_UIInputHandler** (formerly UIInputHandler, to be renamed) - Coordinates UI input and focus
+
+**Critical Rule:** M_StateStore must be the first child under `Managers`. Other managers may subscribe to state slices or dispatch actions during `_ready()`, so the store must be available. If you add new managers, maintain this ordering or update dependencies accordingly.
+
 ---
 
 ## System Categories
@@ -121,24 +136,30 @@ Root (Node) [main_root_node.gd]
 Systems are organized into **four functional categories** for better visual organization and understanding:
 
 ### Core Systems
-**Purpose:** Fundamental game control
+**Purpose:** Fundamental game control and coordination
 **Color:** Blue (`#4890e0`)
 **Marker Script:** `systems_core_group.gd`
 **Icon:** `systems_core.svg`
 
 **Systems:**
 - `S_InputSystem` (priority: 0) - Input capture and processing
-- `S_PauseSystem` (priority: 5) - Pause/unpause state management
+- `S_PauseSystem` (priority: 5) - Engine pause state management (sole authority)
+- `S_TouchscreenSystem` - Mobile virtual controls coordination
+- `S_CheckpointSystem` - Checkpoint activation and respawn point updates
+- `S_SceneTriggerSystem` - Door and scene transition triggers
+- `S_VictorySystem` - Victory condition detection and endgame flows
 
 ### Physics Systems
-**Purpose:** Physics simulation
+**Purpose:** Physics simulation and forces
 **Color:** Purple (`#a848e0`)
 **Marker Script:** `systems_physics_group.gd`
 **Icon:** `systems_physics.svg`
 
 **Systems:**
 - `S_GravitySystem` (priority: 60) - Gravity application
-- `S_JumpSystem` (priority: 75) - Jump mechanics
+- `S_JumpSystem` (priority: 75) - Jump mechanics and buffering
+- `S_DamageSystem` - Collision damage processing
+- `S_HealthSystem` - Health tracking and death handling
 
 ### Movement Systems
 **Purpose:** Character locomotion and positioning
@@ -147,13 +168,13 @@ Systems are organized into **four functional categories** for better visual orga
 **Icon:** `systems_movement.svg`
 
 **Systems:**
-- `S_MovementSystem` (priority: 50) - Horizontal movement
+- `S_MovementSystem` (priority: 50) - Horizontal movement and sprint
 - `S_FloatingSystem` (priority: 70) - Floating/hovering mechanics
 - `S_RotateToInputSystem` (priority: 80) - Rotation to input direction
 - `S_AlignWithSurfaceSystem` (priority: 90) - Surface alignment
 
 ### Feedback Systems
-**Purpose:** Visual indicators, particles, audio
+**Purpose:** Visual indicators, particles, audio, haptics
 **Color:** Orange (`#e07848`)
 **Marker Script:** `systems_feedback_group.gd`
 **Icon:** `systems_feedback.svg`
@@ -163,6 +184,8 @@ Systems are organized into **four functional categories** for better visual orga
 - `S_JumpParticlesSystem` (priority: 120) - Jump particle effects
 - `S_JumpSoundSystem` (priority: 121) - Jump sound effects
 - `S_LandingParticlesSystem` (priority: 122) - Landing particle effects
+- `S_SpawnParticlesSystem` - Player spawn VFX
+- `S_GamepadVibrationSystem` - Haptic feedback for gamepad
 
 ---
 

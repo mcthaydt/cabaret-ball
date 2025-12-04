@@ -68,11 +68,12 @@ These rules apply to **production** assets under `res://scenes/**` and `res://re
 |----------|---------|---------|
 | **Gameplay Scenes** | `gameplay_*.tscn` | `gameplay_base.tscn`, `gameplay_exterior.tscn` |
 | **UI Scenes** | `ui_*.tscn` | `ui_main_menu.tscn`, `ui_pause_menu.tscn` |
+| **Prefab Scenes** | `prefab_*.tscn` | `prefab_death_zone.tscn`, `prefab_checkpoint.tscn` |
 | **Debug Scenes** | `debug_*.tscn` | `debug_state_overlay.tscn` |
 | **UI Screen Definitions** | `resources/ui_screens/*_screen.tres` | `main_menu_screen.tres` |
 | **Scene Registry Entries** | `resources/scene_registry/*.tres` | `gameplay_base_entry.tres` |
 
-Existing scenes such as `main_menu.tscn` and `pause_menu.tscn` are grandfathered but **new scenes should follow** the `ui_*` and `gameplay_*` patterns.
+**Note**: All UI scenes now use `ui_` prefix. Legacy unprefixed UI scenes have been migrated to this pattern.
 
 ### Test, Prototype, and Debug Scripts
 
@@ -138,6 +139,67 @@ every file must:
 - Be explicitly listed as a marker/base exception (e.g., `main_root_node.gd`, `entities_group.gd`, `systems_group.gd`).
 
 If you introduce a new category that does not fit the existing table, update this guide and add a test to enforce the new pattern.
+
+### Complete Prefix Matrix
+
+This matrix documents all allowed filename and class prefixes by category. **Every production file** must match one of these patterns or be explicitly documented as an exception below.
+
+#### Core ECS Layer
+| Category | File Pattern | Class Pattern | Examples |
+|----------|--------------|---------------|----------|
+| **Managers** | `m_*_manager.gd` | `M_*Manager` | `m_ecs_manager.gd` → `M_ECSManager`, `m_state_store.gd` → `M_StateStore` |
+| **Systems** | `s_*_system.gd` | `S_*System` | `s_movement_system.gd` → `S_MovementSystem`, `s_pause_system.gd` → `S_PauseSystem` |
+| **Components** | `c_*_component.gd` | `C_*Component` | `c_movement_component.gd` → `C_MovementComponent` |
+| **Resources** | `rs_*_settings.gd` / `rs_*_initial_state.gd` | `RS_*Settings` / `RS_*InitialState` | `rs_movement_settings.gd` → `RS_MovementSettings` |
+
+#### State Management Layer
+| Category | File Pattern | Class Pattern | Examples |
+|----------|--------------|---------------|----------|
+| **Actions** | `u_*_actions.gd` | `U_*Actions` | `u_gameplay_actions.gd` → `U_GameplayActions` |
+| **Reducers** | `u_*_reducer.gd` | `U_*Reducer` | `u_gameplay_reducer.gd` → `U_GameplayReducer` |
+| **Selectors** | `u_*_selectors.gd` | `U_*Selectors` | `u_gameplay_selectors.gd` → `U_GameplaySelectors` |
+| **State Utils** | `u_*.gd` | `U_*` | `u_state_handoff.gd` → `U_StateHandoff`, `u_action_registry.gd` → `U_ActionRegistry` |
+
+#### UI Layer
+| Category | File Pattern | Class Pattern | Examples |
+|----------|--------------|---------------|----------|
+| **Screen Controllers** | `ui_*_screen.gd` / `ui_*.gd` | `UI_*Screen` / `UI_*` | `ui_main_menu.gd` → `UI_MainMenu`, `ui_credits.gd` → `UI_Credits` |
+| **Overlay Controllers** | `ui_*_overlay.gd` | `UI_*Overlay` | `ui_pause_menu_overlay.gd` → `UI_PauseMenuOverlay` |
+| **UI Components** | `ui_*.gd` | `UI_*` | `ui_button_prompt.gd` → `UI_ButtonPrompt`, `ui_virtual_joystick.gd` → `UI_VirtualJoystick` |
+| **UI Utilities** | `u_ui_*.gd` | `U_UI*` | `u_ui_registry.gd` → `U_UIRegistry`, `u_focus_configurator.gd` → `U_FocusConfigurator` |
+| **UI Manager** | `m_ui_input_handler.gd` | `M_UIInputHandler` | `m_ui_input_handler.gd` → `M_UIInputHandler` |
+
+#### Input Management Layer
+| Category | File Pattern | Class Pattern | Examples |
+|----------|--------------|---------------|----------|
+| **Input Managers** | `m_input_*_manager.gd` | `M_Input*Manager` | `m_input_device_manager.gd` → `M_InputDeviceManager`, `m_input_profile_manager.gd` → `M_InputProfileManager` |
+| **Input Utilities** | `u_input_*.gd` | `U_Input*` | `u_input_rebind_utils.gd` → `U_InputRebindUtils`, `u_input_serialization.gd` → `U_InputSerialization` |
+| **Input Components** | `c_*_component.gd` | `C_*Component` | `c_input_component.gd` → `C_InputComponent`, `c_gamepad_component.gd` → `C_GamepadComponent` |
+| **Input Systems** | `s_*_system.gd` | `S_*System` | `s_input_system.gd` → `S_InputSystem`, `s_touchscreen_system.gd` → `S_TouchscreenSystem` |
+
+#### Scene Management Layer
+| Category | File Pattern | Class Pattern | Examples |
+|----------|--------------|---------------|----------|
+| **Scene Manager** | `m_scene_manager.gd` | `M_SceneManager` | `m_scene_manager.gd` → `M_SceneManager` |
+| **Spawn Manager** | `m_spawn_manager.gd` | `M_SpawnManager` | `m_spawn_manager.gd` → `M_SpawnManager` |
+| **Scene Utilities** | `u_scene_*.gd` | `U_Scene*` | `u_scene_registry.gd` → `U_SceneRegistry`, `u_transition_factory.gd` → `U_TransitionFactory` |
+| **Transition Effects** | `*_transition.gd` | `*Transition` | `fade_transition.gd` → `FadeTransition`, `loading_screen_transition.gd` → `LoadingScreenTransition` |
+| **Scene Triggers** | `c_scene_trigger_component.gd` | `C_SceneTriggerComponent` | `c_scene_trigger_component.gd` → `C_SceneTriggerComponent` |
+
+#### Gameplay Controllers (Interactables)
+| Category | File Pattern | Class Pattern | Examples |
+|----------|--------------|---------------|----------|
+| **Entity Controllers** | `e_*.gd` | `E_*` | `e_door_trigger_controller.gd` → `E_DoorTriggerController`, `e_checkpoint_zone.gd` → `E_CheckpointZone` |
+| **Base Controllers** | `base_*_controller.gd` / `*_controller.gd` | `Base*Controller` / `*Controller` | `base_volume_controller.gd` → `BaseVolumeController`, `triggered_interactable_controller.gd` → `TriggeredInteractableController` |
+
+#### Documented Exceptions
+| Category | File Pattern | Examples | Rationale |
+|----------|--------------|----------|-----------|
+| **Base Classes** | `base_*.gd` / `ecs_*.gd` | `base_panel.gd` → `BasePanel`, `ecs_component.gd` → `BaseECSComponent`, `ecs_entity.gd` → `ECSEntity` | Abstract base classes use `Base` or `ECS` prefix to indicate foundational role |
+| **Marker Scripts** | `*_group.gd` / `*_node.gd` / `*_container.gd` | `main_root_node.gd`, `entities_group.gd`, `active_scene_container.gd` | Scene structure markers provide visual organization, not runtime behavior |
+| **Interface Scripts** | `i_*.gd` | `i_scene_contract.gd` → `I_SCENE_CONTRACT` | Interface definitions follow GDScript interface pattern |
+| **Event Buses** | `*_event_bus.gd` / `event_bus_base.gd` | `u_ecs_event_bus.gd` → `U_ECSEventBus`, `event_bus_base.gd` → `EventBusBase` | Base event bus is foundational, utility event buses use `u_` prefix |
+| **Entity Query** | `entity_query.gd` | `entity_query.gd` → `EntityQuery` | Standalone utility class for ECS queries |
 
 ### Directories: `snake_case` (plural)
 

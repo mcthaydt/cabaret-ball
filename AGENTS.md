@@ -19,6 +19,7 @@
   5. Commit documentation updates separately from implementation
 - Commit at the end of each completed story (or logical, test-green milestone) so every commit represents a verified state.
 - Make a git commit whenever a feature, refactor, or documentation update moves the needle forward; keep commits focused and validated. Skipping required commits is a blocker—treat the guidance as non-optional.
+- **MANDATORY: Run style and scene organization tests before merging**: After any changes to file naming, scene structure, or adding new scripts/scenes, run `tests/unit/style/test_style_enforcement.gd` to ensure prefix compliance and scene structure validity. Automated checks enforce the prefix rules documented in `STYLE_GUIDE.md`.
 
 ## Repo Map (essentials)
 
@@ -86,14 +87,20 @@
 
 ## Naming Conventions Quick Reference
 
+**IMPORTANT**: All production scripts, scenes, and resources must follow documented prefix patterns or be explicitly listed as exceptions. See `docs/general/STYLE_GUIDE.md` for the complete prefix matrix.
+
 - **Base classes:** `Base*` prefix (e.g., `BaseECSSystem`, `BaseECSComponent`, `BaseEventVFXSystem`); entity roots extend `ECSEntity`
 - **Utilities:** `U_*` prefix (e.g., `U_ECSUtils`, `U_BootSelectors`, `U_GameplayReducer`, `U_ActionRegistry`)
-- **Managers:** `M_*` prefix (e.g., `M_ECSManager`, `M_StateStore`)
+- **Managers:** `M_*` prefix (e.g., `M_ECSManager`, `M_StateStore`, `M_UIInputHandler`)
 - **Components:** `C_*` prefix (e.g., `C_MovementComponent`, `C_JumpComponent`)
 - **Systems:** `S_*` prefix (e.g., `S_GravitySystem`, `S_MovementSystem`)
 - **Resources:** `RS_*` prefix (e.g., `RS_JumpSettings`, `RS_MovementSettings`)
 - **Entities:** `E_*` prefix (e.g., `E_Player`, `E_CameraRoot`)
 - **Scene Objects:** `SO_*` prefix (e.g., `SO_Floor`, `SO_Block`)
+- **UI Scripts:** `ui_*` prefix for scripts, `ui_*` prefix for scenes (e.g., `ui_main_menu.gd` → `UI_MainMenu`, `ui_pause_menu.tscn`)
+- **Prefabs:** `prefab_*` prefix for entity/hazard scenes (e.g., `prefab_death_zone.tscn`, `prefab_checkpoint.tscn`)
+
+**Marker Script Exceptions:** `main_root_node.gd`, `entities_group.gd`, `systems_group.gd`, `active_scene_container.gd` (see STYLE_GUIDE.md for full list)
 
 ## Conventions and Gotchas
 
