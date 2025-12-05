@@ -1,6 +1,6 @@
 @icon("res://resources/editor_icons/utility.svg")
 extends "res://scripts/ui/base/base_overlay.gd"
-class_name InputRebindingOverlay
+class_name UI_InputRebindingOverlay
 
 const U_InputActions := preload("res://scripts/state/actions/u_input_actions.gd")
 const U_InputRebindUtils := preload("res://scripts/utils/u_input_rebind_utils.gd")

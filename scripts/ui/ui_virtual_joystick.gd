@@ -1,5 +1,5 @@
 extends Control
-class_name VirtualJoystick
+class_name UI_VirtualJoystick
 
 const U_StateUtils := preload("res://scripts/state/utils/u_state_utils.gd")
 const U_InputActions := preload("res://scripts/state/actions/u_input_actions.gd")

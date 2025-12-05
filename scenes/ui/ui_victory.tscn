@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://dbcudtme76aba"]
+[gd_scene load_steps=2 format=3 uid="uid://bhgc3ilb2eqhd"]
 
-[ext_resource type="Script" uid="uid://dekip8cktb3bd" path="res://scripts/ui/game_over.gd" id="1"]
+[ext_resource type="Script" uid="uid://be8rmp4nw14gq" path="res://scripts/ui/ui_victory.gd" id="1"]
 
-[node name="GameOver" type="Control"]
+[node name="Victory" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -31,13 +31,13 @@ alignment = 1
 
 [node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "Game Over"
+text = "Victory!"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="DeathCountLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="CompletedLabel" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "Deaths: 0"
+text = "Completed Areas: 0"
 horizontal_alignment = 1
 
 [node name="ButtonRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
@@ -46,10 +46,17 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 24
 alignment = 1
 
-[node name="RetryButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonRow"]
+[node name="ContinueButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Retry"
+text = "Reset Run"
+
+[node name="CreditsButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonRow"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+disabled = true
+text = "Credits"
 
 [node name="MenuButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonRow"]
 layout_mode = 2

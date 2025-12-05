@@ -1,10 +1,10 @@
 extends CanvasLayer
-class_name MobileControls
+class_name UI_MobileControls
 
-const VIRTUAL_JOYSTICK_SCENE := preload("res://scenes/ui/virtual_joystick.tscn")
-const VIRTUAL_BUTTON_SCENE := preload("res://scenes/ui/virtual_button.tscn")
-const VirtualJoystick := preload("res://scripts/ui/virtual_joystick.gd")
-const VirtualButton := preload("res://scripts/ui/virtual_button.gd")
+const VIRTUAL_JOYSTICK_SCENE := preload("res://scenes/ui/ui_virtual_joystick.tscn")
+const VIRTUAL_BUTTON_SCENE := preload("res://scenes/ui/ui_virtual_button.tscn")
+const UI_VirtualJoystick := preload("res://scripts/ui/ui_virtual_joystick.gd")
+const UI_VirtualButton := preload("res://scripts/ui/ui_virtual_button.gd")
 const RS_InputProfile := preload("res://scripts/ecs/resources/rs_input_profile.gd")
 const RS_TouchscreenSettings := preload("res://scripts/ecs/resources/rs_touchscreen_settings.gd")
 const U_StateUtils := preload("res://scripts/state/utils/u_state_utils.gd")
@@ -27,8 +27,8 @@ var _state_store: M_StateStore = null
 var _unsubscribe: Callable = Callable()
 var _controls_root: Control = null
 var _default_touchscreen_settings: RS_TouchscreenSettings = RS_TouchscreenSettings.new()
-var _joystick: VirtualJoystick = null
-var _buttons: Array[VirtualButton] = []
+var _joystick: UI_VirtualJoystick = null
+var _buttons: Array[UI_VirtualButton] = []
 var _profile: RS_InputProfile = null
 var _profile_button_positions: Dictionary = {}
 var _profile_joystick_position: Vector2 = Vector2.ZERO
@@ -137,7 +137,7 @@ func _build_controls(state: Dictionary) -> void:
 		_joystick.queue_free()
 		_joystick = null
 
-	var joystick_instance := VIRTUAL_JOYSTICK_SCENE.instantiate() as VirtualJoystick
+	var joystick_instance := VIRTUAL_JOYSTICK_SCENE.instantiate() as UI_VirtualJoystick
 	if joystick_instance != null:
 		joystick_instance.name = "VirtualJoystick"
 		_controls_root.add_child(joystick_instance)
@@ -145,7 +145,7 @@ func _build_controls(state: Dictionary) -> void:
 		_connect_input_signals(_joystick)
 
 	for button_key in _profile_button_positions.keys():
-		var button_instance := VIRTUAL_BUTTON_SCENE.instantiate() as VirtualButton
+		var button_instance := VIRTUAL_BUTTON_SCENE.instantiate() as UI_VirtualButton
 		if button_instance == null:
 			continue
 		var action_name := StringName(button_key)

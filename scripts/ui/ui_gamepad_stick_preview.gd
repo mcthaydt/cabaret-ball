@@ -1,5 +1,5 @@
 extends Control
-class_name GamepadStickPreview
+class_name UI_GamepadStickPreview
 
 ## Simple visualization for left/right stick vectors.
 

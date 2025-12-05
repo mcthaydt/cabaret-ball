@@ -1,6 +1,6 @@
 @icon("res://resources/editor_icons/utility.svg")
 extends "res://scripts/ui/base/base_overlay.gd"
-class_name EditTouchControlsOverlay
+class_name UI_EditTouchControlsOverlay
 
 const U_InputActions := preload("res://scripts/state/actions/u_input_actions.gd")
 const U_NavigationActions := preload("res://scripts/state/actions/u_navigation_actions.gd")
@@ -13,13 +13,13 @@ const U_FocusConfigurator := preload("res://scripts/ui/helpers/u_focus_configura
 @onready var _save_button: Button = %SaveButton
 @onready var _grid_overlay: ColorRect = $GridOverlay
 
-var _mobile_controls: MobileControls = null
+var _mobile_controls: UI_MobileControls = null
 var _profile_manager: Node = null
 var _drag_mode_enabled: bool = false
 var _original_positions: Dictionary = {}
 
 func _on_panel_ready() -> void:
-	_mobile_controls = get_tree().get_first_node_in_group("mobile_controls") as MobileControls
+	_mobile_controls = get_tree().get_first_node_in_group("mobile_controls") as UI_MobileControls
 	_profile_manager = get_tree().get_first_node_in_group("input_profile_manager")
 
 	_configure_focus_neighbors()

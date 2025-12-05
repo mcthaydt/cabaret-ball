@@ -1,6 +1,6 @@
 @icon("res://resources/editor_icons/utility.svg")
 extends HBoxContainer
-class_name ButtonPrompt
+class_name UI_ButtonPrompt
 
 const U_StateUtils := preload("res://scripts/state/utils/u_state_utils.gd")
 const U_InputSelectors := preload("res://scripts/state/selectors/u_input_selectors.gd")

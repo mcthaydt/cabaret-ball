@@ -227,9 +227,9 @@ func test_death_spawns_ragdoll_and_transitions_to_game_over() -> void:
 		"Game Over scene should load after death sequence completes")
 
 func test_game_over_retry_resets_health_and_returns_to_exterior() -> void:
-	assert_true(ResourceLoader.exists("res://scenes/ui/game_over.tscn"),
+	assert_true(ResourceLoader.exists("res://scenes/ui/ui_game_over.tscn"),
 		"game_over scene must exist")
-	var packed_scene: PackedScene = load("res://scenes/ui/game_over.tscn") as PackedScene
+	var packed_scene: PackedScene = load("res://scenes/ui/ui_game_over.tscn") as PackedScene
 	assert_not_null(packed_scene, "game_over.tscn should load as PackedScene")
 
 	var scene_instance: Control = packed_scene.instantiate() as Control

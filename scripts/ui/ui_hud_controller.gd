@@ -4,7 +4,7 @@ extends CanvasLayer
 const U_StateUtils := preload("res://scripts/state/utils/u_state_utils.gd")
 const U_EntitySelectors := preload("res://scripts/state/selectors/u_entity_selectors.gd")
 const U_ECSEventBus := preload("res://scripts/ecs/u_ecs_event_bus.gd")
-const ButtonPrompt := preload("res://scripts/ui/button_prompt.gd")
+const UI_ButtonPrompt := preload("res://scripts/ui/ui_button_prompt.gd")
 const U_NavigationSelectors := preload("res://scripts/state/selectors/u_navigation_selectors.gd")
 const HUD_GROUP := StringName("hud_layers")
 
@@ -12,7 +12,7 @@ const HUD_GROUP := StringName("hud_layers")
 @onready var health_bar: ProgressBar = $MarginContainer/VBoxContainer/HealthBar
 @onready var health_label: Label = $MarginContainer/VBoxContainer/HealthBar/HealthLabel
 @onready var checkpoint_toast: Label = $MarginContainer/CheckpointToast
-@onready var interact_prompt: ButtonPrompt = $MarginContainer/InteractPrompt
+@onready var interact_prompt: UI_ButtonPrompt = $MarginContainer/InteractPrompt
 
 var _store: M_StateStore = null
 var _player_entity_id: String = "E_Player"

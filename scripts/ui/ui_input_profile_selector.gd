@@ -1,6 +1,6 @@
 @icon("res://resources/editor_icons/utility.svg")
 extends "res://scripts/ui/base/base_overlay.gd"
-class_name InputProfileSelector
+class_name UI_InputProfileSelector
 
 const U_InputSelectors := preload("res://scripts/state/selectors/u_input_selectors.gd")
 const U_NavigationActions := preload("res://scripts/state/actions/u_navigation_actions.gd")

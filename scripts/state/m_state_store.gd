@@ -207,7 +207,7 @@ func _input(event: InputEvent) -> void:
 	if toggle_pressed:
 		if _debug_overlay == null or not is_instance_valid(_debug_overlay):
 			# Spawn debug overlay
-			var overlay_scene := load("res://scenes/debug/sc_state_debug_overlay.tscn")
+			var overlay_scene := load("res://scenes/debug/debug_state_overlay.tscn")
 			if overlay_scene:
 				_debug_overlay = overlay_scene.instantiate()
 				add_child(_debug_overlay)

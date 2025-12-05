@@ -1,11 +1,11 @@
 @icon("res://resources/editor_icons/utility.svg")
 extends "res://scripts/ui/base/base_overlay.gd"
-class_name GamepadSettingsOverlay
+class_name UI_GamepadSettingsOverlay
 
 const RS_GamepadSettings := preload("res://scripts/ecs/resources/rs_gamepad_settings.gd")
 const U_InputSelectors := preload("res://scripts/state/selectors/u_input_selectors.gd")
 const U_InputActions := preload("res://scripts/state/actions/u_input_actions.gd")
-const GamepadStickPreview := preload("res://scripts/ui/gamepad_stick_preview.gd")
+const UI_GamepadStickPreview := preload("res://scripts/ui/ui_gamepad_stick_preview.gd")
 const U_NavigationActions := preload("res://scripts/state/actions/u_navigation_actions.gd")
 const U_NavigationSelectors := preload("res://scripts/state/selectors/u_navigation_selectors.gd")
 const U_FocusConfigurator := preload("res://scripts/ui/helpers/u_focus_configurator.gd")
@@ -17,12 +17,12 @@ const U_FocusConfigurator := preload("res://scripts/ui/helpers/u_focus_configura
 @onready var _vibration_checkbox: CheckButton = %VibrationCheck
 @onready var _vibration_slider: HSlider = %VibrationSlider
 @onready var _vibration_label: Label = %VibrationValue
-@onready var _preview: GamepadStickPreview = %StickPreview
+@onready var _preview: UI_GamepadStickPreview = %StickPreview
 @onready var _apply_button: Button = %ApplyButton
 @onready var _cancel_button: Button = %CancelButton
 @onready var _reset_button: Button = %ResetButton
-@onready var _preview_enter_prompt: ButtonPrompt = %EnterPrompt
-@onready var _preview_exit_prompt: ButtonPrompt = %ExitPrompt
+@onready var _preview_enter_prompt: UI_ButtonPrompt = %EnterPrompt
+@onready var _preview_exit_prompt: UI_ButtonPrompt = %ExitPrompt
 
 var _store_unsubscribe: Callable = Callable()
 var _current_device_id: int = -1

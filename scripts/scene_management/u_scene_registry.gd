@@ -69,7 +69,7 @@ static func _register_scenes() -> void:
 	# Main Menu (game entry point)
 	_register_scene(
 		StringName("main_menu"),
-		"res://scenes/ui/main_menu.tscn",
+		"res://scenes/ui/ui_main_menu.tscn",
 		SceneType.MENU,
 		"fade",
 		10  # Critical path - preload at startup (Phase 8)
@@ -78,7 +78,7 @@ static func _register_scenes() -> void:
 	# Settings Menu (user-designated critical)
 	_register_scene(
 		StringName("settings_menu"),
-		"res://scenes/ui/settings_menu.tscn",
+		"res://scenes/ui/ui_settings_menu.tscn",
 		SceneType.UI,
 		"instant",
 		10  # Upgraded to critical priority per user request
@@ -87,7 +87,7 @@ static func _register_scenes() -> void:
 	# Pause Menu (preloaded at startup)
 	_register_scene(
 		StringName("pause_menu"),
-		"res://scenes/ui/pause_menu.tscn",
+		"res://scenes/ui/ui_pause_menu.tscn",
 		SceneType.UI,
 		"instant",
 		10  # Critical path - preload at startup (Phase 8)
@@ -96,7 +96,7 @@ static func _register_scenes() -> void:
 	# Loading Screen (preloaded at startup)
 	_register_scene(
 		StringName("loading_screen"),
-		"res://scenes/ui/loading_screen.tscn",
+		"res://scenes/ui/ui_loading_screen.tscn",
 		SceneType.UI,
 		"instant",
 		10  # Critical path - preload at startup (Phase 8)
@@ -240,7 +240,7 @@ static func _backfill_default_gameplay_scenes() -> void:
 	if not _scenes.has(StringName("gamepad_settings")):
 		_register_scene(
 			StringName("gamepad_settings"),
-			"res://scenes/ui/gamepad_settings_overlay.tscn",
+			"res://scenes/ui/ui_gamepad_settings_overlay.tscn",
 			SceneType.UI,
 			"instant",
 			5
@@ -249,7 +249,7 @@ static func _backfill_default_gameplay_scenes() -> void:
 	if not _scenes.has(StringName("touchscreen_settings")):
 		_register_scene(
 			StringName("touchscreen_settings"),
-			"res://scenes/ui/touchscreen_settings_overlay.tscn",
+			"res://scenes/ui/ui_touchscreen_settings_overlay.tscn",
 			SceneType.UI,
 			"instant",
 			5
@@ -258,7 +258,7 @@ static func _backfill_default_gameplay_scenes() -> void:
 	if not _scenes.has(StringName("edit_touch_controls")):
 		_register_scene(
 			StringName("edit_touch_controls"),
-			"res://scenes/ui/edit_touch_controls_overlay.tscn",
+			"res://scenes/ui/ui_edit_touch_controls_overlay.tscn",
 			SceneType.UI,
 			"instant",
 			5
@@ -267,7 +267,7 @@ static func _backfill_default_gameplay_scenes() -> void:
 	if not _scenes.has(StringName("input_profile_selector")):
 		_register_scene(
 			StringName("input_profile_selector"),
-			"res://scenes/ui/input_profile_selector.tscn",
+			"res://scenes/ui/ui_input_profile_selector.tscn",
 			SceneType.UI,
 			"instant",
 			5
@@ -276,7 +276,7 @@ static func _backfill_default_gameplay_scenes() -> void:
 	if not _scenes.has(StringName("input_rebinding")):
 		_register_scene(
 			StringName("input_rebinding"),
-			"res://scenes/ui/input_rebinding_overlay.tscn",
+			"res://scenes/ui/ui_input_rebinding_overlay.tscn",
 			SceneType.UI,
 			"instant",
 			5
@@ -288,7 +288,7 @@ static func _backfill_default_gameplay_scenes() -> void:
 	if not _scenes.has(StringName("game_over")):
 		_register_scene(
 			StringName("game_over"),
-			"res://scenes/ui/game_over.tscn",
+			"res://scenes/ui/ui_game_over.tscn",
 			SceneType.END_GAME,
 			"fade",
 			8
@@ -297,7 +297,7 @@ static func _backfill_default_gameplay_scenes() -> void:
 	if not _scenes.has(StringName("victory")):
 		_register_scene(
 			StringName("victory"),
-			"res://scenes/ui/victory.tscn",
+			"res://scenes/ui/ui_victory.tscn",
 			SceneType.END_GAME,
 			"fade",
 			5
@@ -306,7 +306,7 @@ static func _backfill_default_gameplay_scenes() -> void:
 	if not _scenes.has(StringName("credits")):
 		_register_scene(
 			StringName("credits"),
-			"res://scenes/ui/credits.tscn",
+			"res://scenes/ui/ui_credits.tscn",
 			SceneType.END_GAME,
 			"fade",
 			0
