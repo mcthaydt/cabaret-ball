@@ -8,13 +8,18 @@ extends GutTest
 
 const M_SceneManager = preload("res://scripts/managers/m_scene_manager.gd")
 const M_StateStore = preload("res://scripts/state/m_state_store.gd")
+const M_CursorManager = preload("res://scripts/managers/m_cursor_manager.gd")
+const S_PauseSystem = preload("res://scripts/ecs/systems/s_pause_system.gd")
 const RS_SceneInitialState = preload("res://scripts/state/resources/rs_scene_initial_state.gd")
+const RS_NavigationInitialState = preload("res://scripts/state/resources/rs_navigation_initial_state.gd")
 const RS_StateStoreSettings = preload("res://scripts/state/resources/rs_state_store_settings.gd")
 const U_SceneRegistry = preload("res://scripts/scene_management/u_scene_registry.gd")
 
 var _root_scene: Node
 var _manager: M_SceneManager
 var _store: M_StateStore
+var _cursor: M_CursorManager
+var _pause_system: S_PauseSystem
 var _active_scene_container: Node
 
 func before_each() -> void:
@@ -28,13 +33,24 @@ func before_each() -> void:
 	_store.settings = RS_StateStoreSettings.new()
 	var scene_initial_state := RS_SceneInitialState.new()
 	_store.scene_initial_state = scene_initial_state
+	_store.navigation_initial_state = RS_NavigationInitialState.new()
 	_root_scene.add_child(_store)
 	await get_tree().process_frame
+
+	# Create cursor manager (Phase 2: T024b - required for S_PauseSystem)
+	_cursor = M_CursorManager.new()
+	_root_scene.add_child(_cursor)
 
 	# Create scene containers
 	_active_scene_container = Node.new()
 	_active_scene_container.name = "ActiveSceneContainer"
 	_root_scene.add_child(_active_scene_container)
+
+	# Create UI overlay stack (required for pause system)
+	var ui_overlay_stack := CanvasLayer.new()
+	ui_overlay_stack.name = "UIOverlayStack"
+	ui_overlay_stack.process_mode = Node.PROCESS_MODE_ALWAYS
+	_root_scene.add_child(ui_overlay_stack)
 
 	# Create transition overlay
 	var transition_overlay := CanvasLayer.new()
@@ -50,11 +66,18 @@ func before_each() -> void:
 	_manager = M_SceneManager.new()
 	_manager.skip_initial_scene_load = true  # Don't load main_menu automatically in tests
 	_root_scene.add_child(_manager)
+
+	# Create pause system (Phase 2: T024b - sole authority for pause/cursor)
+	_pause_system = S_PauseSystem.new()
+	_root_scene.add_child(_pause_system)
+
 	await get_tree().process_frame
 
 func after_each() -> void:
 	_manager = null
 	_store = null
+	_cursor = null
+	_pause_system = null
 	_active_scene_container = null
 	_root_scene = null
 

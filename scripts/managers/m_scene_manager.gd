@@ -24,7 +24,6 @@ const M_STATE_STORE := preload("res://scripts/state/m_state_store.gd")
 const M_CURSOR_MANAGER := preload("res://scripts/managers/m_cursor_manager.gd")
 const U_SCENE_ACTIONS := preload("res://scripts/state/actions/u_scene_actions.gd")
 const U_NAVIGATION_ACTIONS := preload("res://scripts/state/actions/u_navigation_actions.gd")
-const U_GAMEPLAY_ACTIONS := preload("res://scripts/state/actions/u_gameplay_actions.gd")
 const U_SCENE_REGISTRY := preload("res://scripts/scene_management/u_scene_registry.gd")
 const U_UI_REGISTRY := preload("res://scripts/ui/u_ui_registry.gd")
 const U_TRANSITION_FACTORY := preload("res://scripts/scene_management/u_transition_factory.gd")
@@ -232,12 +231,12 @@ func _on_state_changed(_action: Dictionary, state: Dictionary) -> void:
 	var scene_state: Dictionary = state.get("scene", {})
 	var new_scene_id: StringName = scene_state.get("current_scene_id", StringName(""))
 
-	# Only update cursor when scene_id actually changes and is not empty
+	# Only track scene_id when it actually changes and is not empty
+	# Phase 2 (T022): Cursor updates removed - S_PauseSystem is now sole authority
 	if new_scene_id != _current_scene_id and not new_scene_id.is_empty():
 		_current_scene_id = new_scene_id
 		if _navigation_pending_scene_id == new_scene_id:
 			_navigation_pending_scene_id = StringName("")
-		_update_cursor_for_scene(new_scene_id)
 		# NOTE: _sync_navigation_shell_with_scene() now called AFTER transition completes
 		# in _process_transition_queue() to prevent mobile controls flashing (line 316)
 
@@ -751,7 +750,7 @@ func push_overlay(scene_id: StringName, force: bool = false) -> void:
 		# Dispatch push overlay action after successful add
 		if _store != null:
 			_store.dispatch(U_SCENE_ACTIONS.push_overlay(scene_id))
-		_update_pause_state()
+		_update_particles_and_focus()
 
 ## Pop top overlay from UIOverlayStack
 func pop_overlay() -> void:
@@ -770,7 +769,7 @@ func pop_overlay() -> void:
 	var top_overlay: Node = _ui_overlay_stack.get_child(overlay_count - 1)
 	_ui_overlay_stack.remove_child(top_overlay)
 	top_overlay.queue_free()
-	_update_pause_state()
+	_update_particles_and_focus()
 	_restore_focus_to_top_overlay()
 
 ## Push overlay with automatic return navigation (Phase 6.5)
@@ -898,46 +897,20 @@ func _find_first_focusable_in(root: Node) -> Control:
 				return nested
 	return null
 
-## Update SceneTree pause + cursor state based on overlay stack
-func _update_pause_state() -> void:
+## Update particles and focus based on overlay stack
+##
+## Phase 2 (T022): Refactored to remove pause/cursor authority.
+## S_PauseSystem is now the sole authority for get_tree().paused and cursor state.
+## This method only handles GPU particle workaround (particles ignore SceneTree pause).
+func _update_particles_and_focus() -> void:
 	if _ui_overlay_stack == null:
 		return
 
 	var overlay_count: int = _ui_overlay_stack.get_child_count()
 	var should_pause: bool = overlay_count > 0
 
-	if get_tree().paused != should_pause:
-		get_tree().paused = should_pause
-
-	# Keep gameplay state in sync so HUD/selectors reflect pause status
-	if _store != null:
-		var gameplay_state: Dictionary = _store.get_slice(StringName("gameplay"))
-		var is_paused_in_state: bool = false
-		if not gameplay_state.is_empty():
-			is_paused_in_state = gameplay_state.get("paused", false)
-
-		if should_pause and not is_paused_in_state:
-			_store.dispatch(U_GAMEPLAY_ACTIONS.pause_game())
-		elif not should_pause and is_paused_in_state:
-			_store.dispatch(U_GAMEPLAY_ACTIONS.unpause_game())
-
-	if _cursor_manager != null:
-		if should_pause:
-			_cursor_manager.set_cursor_state(false, true)  # unlocked, visible
-		else:
-			# No overlays - set cursor based on current scene type
-			# MENU/UI/END_GAME scenes need visible cursor even without overlays
-			# GAMEPLAY scenes need hidden cursor
-			var scene_data: Dictionary = U_SCENE_REGISTRY.get_scene(_current_scene_id)
-			var scene_type: int = scene_data.get("scene_type", U_SCENE_REGISTRY.SceneType.GAMEPLAY)
-
-			match scene_type:
-				U_SCENE_REGISTRY.SceneType.MENU, U_SCENE_REGISTRY.SceneType.UI, U_SCENE_REGISTRY.SceneType.END_GAME:
-					_cursor_manager.set_cursor_state(false, true)  # unlocked, visible
-				U_SCENE_REGISTRY.SceneType.GAMEPLAY:
-					_cursor_manager.set_cursor_state(true, false)  # locked, hidden
-
 	# Ensure particles in gameplay respect pause (GPU particles ignore SceneTree pause)
+	# This is a workaround - S_PauseSystem controls actual pause via get_tree().paused
 	_set_particles_paused(should_pause)
 
 ## Recursively collect particle nodes and set speed_scale to pause/resume simulation
@@ -1117,7 +1090,7 @@ func _sync_overlay_stack_state() -> void:
 
 	var scene_state: Dictionary = _store.get_slice(StringName("scene"))
 	if scene_state.is_empty():
-		_update_pause_state()
+		_update_particles_and_focus()
 		return
 
 	var current_stack_variant: Array = scene_state.get("scene_stack", [])
@@ -1131,7 +1104,7 @@ func _sync_overlay_stack_state() -> void:
 	var desired_stack: Array[StringName] = _get_overlay_scene_ids_from_ui()
 
 	if _overlay_stacks_match(current_stack, desired_stack):
-		_update_pause_state()
+		_update_particles_and_focus()
 		return
 
 	if current_stack.size() > 0:
@@ -1140,7 +1113,7 @@ func _sync_overlay_stack_state() -> void:
 	for scene_id in desired_stack:
 		_store.dispatch(U_SCENE_ACTIONS.push_overlay(scene_id))
 
-	_update_pause_state()
+	_update_particles_and_focus()
 
 ## Collect overlay scene IDs from UIOverlayStack metadata
 func _get_overlay_scene_ids_from_ui() -> Array[StringName]:
@@ -1225,26 +1198,8 @@ func is_transitioning() -> bool:
 	var scene_state: Dictionary = state.get("scene", {})
 	return scene_state.get("is_transitioning", false)
 
-## Update cursor state based on scene type
-func _update_cursor_for_scene(scene_id: StringName) -> void:
-	if _cursor_manager == null:
-		return
-
-	var scene_data: Dictionary = U_SCENE_REGISTRY.get_scene(scene_id)
-	if scene_data.is_empty():
-		return
-
-	var scene_type: int = scene_data.get("scene_type", U_SCENE_REGISTRY.SceneType.GAMEPLAY)
-
-	# UI/Menu/End-game scenes: cursor visible + unlocked
-	# Gameplay scenes: cursor hidden + locked
-	match scene_type:
-		U_SCENE_REGISTRY.SceneType.MENU, U_SCENE_REGISTRY.SceneType.UI, U_SCENE_REGISTRY.SceneType.END_GAME:
-			_cursor_manager.set_cursor_state(false, true)  # unlocked, visible
-		U_SCENE_REGISTRY.SceneType.GAMEPLAY:
-			_cursor_manager.set_cursor_state(true, false)  # locked, hidden
-
 ## Keep navigation shell/base scene aligned with the actual scene (manual transitions/tests)
+## Phase 2 (T022): Removed _update_cursor_for_scene() - S_PauseSystem now handles cursor state
 func _sync_navigation_shell_with_scene(scene_id: StringName) -> void:
 	if not _initial_navigation_synced:
 		return

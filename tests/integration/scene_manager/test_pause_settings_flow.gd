@@ -6,12 +6,15 @@ extends GutTest
 const M_SCENE_MANAGER := preload("res://scripts/managers/m_scene_manager.gd")
 const M_STATE_STORE := preload("res://scripts/state/m_state_store.gd")
 const M_CURSOR_MANAGER := preload("res://scripts/managers/m_cursor_manager.gd")
+const S_PAUSE_SYSTEM := preload("res://scripts/ecs/systems/s_pause_system.gd")
 const RS_SCENE_INITIAL_STATE := preload("res://scripts/state/resources/rs_scene_initial_state.gd")
+const RS_NAVIGATION_INITIAL_STATE := preload("res://scripts/state/resources/rs_navigation_initial_state.gd")
 
 var _root_node: Node
 var _state_store: M_STATE_STORE
 var _scene_manager: M_SCENE_MANAGER
 var _cursor_manager: M_CURSOR_MANAGER
+var _pause_system: S_PAUSE_SYSTEM
 var _active_scene_container: Node
 var _ui_overlay_stack: CanvasLayer
 
@@ -21,6 +24,7 @@ func before_each() -> void:
 
 	_state_store = M_STATE_STORE.new()
 	_state_store.scene_initial_state = RS_SCENE_INITIAL_STATE.new()
+	_state_store.navigation_initial_state = RS_NAVIGATION_INITIAL_STATE.new()
 	_root_node.add_child(_state_store)
 
 	_cursor_manager = M_CURSOR_MANAGER.new()
@@ -42,6 +46,10 @@ func before_each() -> void:
 	_scene_manager = M_SCENE_MANAGER.new()
 	_scene_manager.skip_initial_scene_load = true
 	_root_node.add_child(_scene_manager)
+
+	# Create S_PauseSystem (Phase 2: T024b - sole authority for pause/cursor)
+	_pause_system = S_PAUSE_SYSTEM.new()
+	_root_node.add_child(_pause_system)
 
 	await get_tree().process_frame
 

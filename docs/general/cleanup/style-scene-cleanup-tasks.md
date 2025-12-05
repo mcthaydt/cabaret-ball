@@ -82,22 +82,88 @@ version: "1.0"
 
 ## Phase 2 – Responsibility Consolidation (Pause/Cursor)
 
+**CRITICAL REQUIREMENTS IDENTIFIED FROM FAILED ATTEMPT**:
+- Main menu (SceneType.MENU) MUST have cursor visible & unlocked
+- S_PauseSystem must derive cursor state from BOTH pause state AND scene type
+- Tests need proper timing (await physics frames for S_PauseSystem to react to scene state changes)
+- S_PauseSystem must be added to root.tscn BUT with proper initialization order
+- Scene slice subscription must happen AFTER M_StateStore and M_SceneManager are ready
+
+### Core Authority Model
+
 - [ ] T020 Document the **pause/cursor authority model** in a short note under `docs/general/cleanup/`:
   - Confirm `S_PauseSystem` is the single authority for engine pause and cursor coordination (via `M_CursorManager`).
-- [ ] T021 Refactor `S_PauseSystem` to:
-  - Derive pause state solely from navigation/state.
-  - Set `get_tree().paused` and coordinate cursor via `M_CursorManager`.
-- [ ] T022 Remove or deprecate direct pause/cursor control from `M_SceneManager`:
-  - Ensure `_update_pause_state()` no longer sets `get_tree().paused` or dispatches gameplay pause actions.
-  - Retain or adjust particle pause logic as needed, but base it on the centralized pause signal/state.
-- [ ] T023 Audit other systems/managers for `get_tree().paused` usage and:
-  - Remove any direct writes that conflict with the new model.
-  - If a special case is truly required, document it in DEV_PITFALLS and tests.
-- [ ] T024 Update pause‑related tests:
-  - Scene Manager pause tests.
-  - Input/Navigation pause tests.
-  - ECS pause system tests.
-  - Ensure they now assert behaviour via the centralized pause authority.
+  - Document cursor logic: overlays → visible, MENU/UI/END_GAME → visible, GAMEPLAY → hidden.
+  - **NEW**: Document initialization order requirements (store → scene manager → pause system).
+
+### S_PauseSystem Refactor
+
+- [ ] T021 Refactor `S_PauseSystem` to derive pause and cursor state from scene slice:
+  - Subscribe to scene slice updates (NOT navigation slice).
+  - Derive pause from `scene.scene_stack.size() > 0` (overlays = paused).
+  - Derive cursor from BOTH pause state AND scene type.
+  - **Cursor logic**:
+    - If paused (overlays present): cursor visible & unlocked
+    - If not paused:
+      - MENU/UI/END_GAME scenes: cursor visible & unlocked
+      - GAMEPLAY scenes: cursor hidden & locked
+  - Set `process_mode = Node.PROCESS_MODE_ALWAYS` (can unpause tree).
+  - **NEW**: Ensure proper initialization - wait for tree ready before subscribing to slice.
+
+### M_SceneManager Cleanup
+
+- [ ] T022 Remove ALL pause/cursor control from `M_SceneManager`:
+  - Rename `_update_pause_state()` → `_update_particles_and_focus()`.
+  - Remove `get_tree().paused` writes.
+  - Remove `M_CursorManager.set_cursor_state()` calls.
+  - Remove `U_GAMEPLAY_ACTIONS.pause_game()` / `unpause_game()` dispatches.
+  - Remove `_update_cursor_for_scene()` method entirely.
+  - Remove `U_GAMEPLAY_ACTIONS` import (no longer needed).
+  - Retain ONLY particle pause logic (GPU particle workaround for SceneTree pause).
+
+### Codebase Audit
+
+- [ ] T023 Audit entire codebase for pause/cursor authority violations:
+  - Search for `get_tree().paused =` - only S_PauseSystem should write.
+  - Search for `Input.mouse_mode =` - only M_CursorManager should write.
+  - Search for `M_CursorManager.set_cursor_state(` - only S_PauseSystem should call.
+  - Document any read-only pause checks (safe to keep).
+  - **NEW**: If any violations found, fix or document as exceptions in DEV_PITFALLS.
+
+### Root Scene Integration
+
+- [ ] T024a Add S_PauseSystem to `root.tscn`:
+  - Add as child of Managers node.
+  - Place AFTER M_StateStore, M_SceneManager, M_CursorManager in node order.
+  - Verify initialization order in manager_ready signals.
+
+### Test Updates
+
+- [ ] T024b Update pause-related integration tests:
+  - Add S_PauseSystem instances to test setups.
+  - Add `await get_tree().process_frame` or `await wait_physics_frames(2)` after state changes.
+  - **Tests requiring updates**:
+    - `test_pause_system.gd` - scene tree pause/unpause via overlays.
+    - `test_particles_pause.gd` - particle speed_scale during pause.
+    - `test_pause_settings_flow.gd` - pause → settings → resume flow.
+    - `test_cursor_reactive_updates.gd` - cursor state changes on scene transitions.
+  - Ensure tests verify S_PauseSystem is sole authority (no M_SceneManager pause/cursor calls).
+
+### Main Menu Cursor Verification
+
+- [ ] T024c Verify main menu cursor behavior:
+  - Manual test: Launch game → main menu should have visible, unlocked cursor.
+  - Verify SceneType.MENU scenes get cursor visible & unlocked from S_PauseSystem.
+  - **NEW**: Add explicit test for main menu cursor state on boot.
+
+### Final Validation
+
+- [ ] T025 Run full integration test suite:
+  - Scene manager tests (all).
+  - Pause system tests.
+  - Input/navigation tests.
+  - Verify no regressions in cursor behavior during transitions.
+  - **NEW**: Run tests multiple times to catch race conditions.
 
 ---
 
