@@ -5,10 +5,12 @@ class_name S_PauseSystem
 ## Pause System - SOLE AUTHORITY for engine pause and cursor coordination
 ##
 ## Phase 2 (T021): Refactored to derive pause and cursor state from scene slice.
+## Phase 2.1 (Post-T021): Added UIOverlayStack reference to bridge state sync timing gap.
 ##
 ## Responsibilities:
 ## - Subscribe to scene slice updates
 ## - Derive pause from scene.scene_stack size (overlays = paused)
+## - Check UIOverlayStack directly for immediate pause detection (bridges timing gap)
 ## - Apply engine-level pause (get_tree().paused)
 ## - Coordinate cursor state with M_CursorManager based on BOTH pause state AND scene type
 ## - Emit pause_state_changed signal for other systems
@@ -27,31 +29,58 @@ const U_SceneRegistry := preload("res://scripts/scene_management/u_scene_registr
 
 var _store: M_StateStore = null
 var _cursor_manager: M_CursorManager = null
+var _ui_overlay_stack: CanvasLayer = null
 var _is_paused: bool = false
 var _current_scene_id: StringName = StringName("")
 var _current_scene_type: int = -1
 
+func _init() -> void:
+	# CRITICAL: Pause system must process even when tree is paused
+	# Otherwise it can't unpause the tree or handle scene transitions
+	# Set this in _init() so it's active before _ready()
+	process_mode = Node.PROCESS_MODE_ALWAYS
+
 func _ready() -> void:
 	super._ready()
 
-	# CRITICAL: Pause system must process even when tree is paused
-	# Otherwise it can't unpause the tree or handle scene transitions
-	process_mode = Node.PROCESS_MODE_ALWAYS
-
-	# Wait for tree to be fully ready (M_StateStore, M_SceneManager need to initialize)
-	await get_tree().process_frame
-
-	# Get reference to state store
-	_store = U_StateUtils.get_store(self)
+	# Get reference to state store (synchronous - state store should already exist)
+	# Note: U_StateUtils.get_store may push_error if store not found, but we handle it gracefully
+	var stores := get_tree().get_nodes_in_group("state_store")
+	if stores.size() > 0:
+		_store = stores[0] as M_StateStore
 
 	if not _store:
-		push_error("S_PauseSystem: Could not find M_StateStore")
+		# Store not found yet - defer initialization
+		# This is normal in some test environments without a full state store
+		call_deferred("_deferred_init")
 		return
 
+	# Store exists - initialize immediately
+	_initialize()
+
+## Deferred initialization if store isn't ready yet
+func _deferred_init() -> void:
+	var stores := get_tree().get_nodes_in_group("state_store")
+	if stores.size() > 0:
+		_store = stores[0] as M_StateStore
+
+	if not _store:
+		# No store available - pause system will remain inactive
+		# This is expected in test environments that don't use state management
+		return
+
+	_initialize()
+
+## Main initialization logic
+func _initialize() -> void:
 	# Get reference to cursor manager (optional - pause still works without it)
 	var cursor_managers: Array[Node] = get_tree().get_nodes_in_group("cursor_manager")
 	if cursor_managers.size() > 0:
 		_cursor_manager = cursor_managers[0] as M_CursorManager
+
+	# Get reference to UIOverlayStack (for immediate pause detection)
+	_ui_overlay_stack = get_tree().root.find_child("UIOverlayStack", true, false)
+	# Note: UIOverlayStack is optional in test environments - pause still works via scene state
 
 	# Subscribe to scene slice updates (Phase 2: derive pause and cursor from scene slice)
 	_store.slice_updated.connect(_on_slice_updated)
@@ -60,19 +89,57 @@ func _ready() -> void:
 	var full_state: Dictionary = _store.get_state()
 	var scene_state: Dictionary = full_state.get("scene", {})
 
-	# Pause is determined by overlay stack (scene_stack) size
+	# Pause is determined by overlay stack size from BOTH state and actual UI
 	var scene_stack: Array = scene_state.get("scene_stack", [])
-	_is_paused = scene_stack.size() > 0
+	var has_overlays_in_state: bool = scene_stack.size() > 0
+	var has_overlays_in_ui: bool = _ui_overlay_stack != null and _ui_overlay_stack.get_child_count() > 0
+	# Use OR logic: pause if either state or UI indicates overlays exist
+	_is_paused = has_overlays_in_state or has_overlays_in_ui
 
 	_current_scene_id = scene_state.get("current_scene_id", StringName(""))
 	_current_scene_type = _get_scene_type(_current_scene_id)
 
 	_apply_pause_and_cursor_state()
 
+	# NOTE: _process() will continuously poll and correct any state mismatches
+
 func _exit_tree() -> void:
 	# Clean up subscriptions
 	if _store and _store.slice_updated.is_connected(_on_slice_updated):
 		_store.slice_updated.disconnect(_on_slice_updated)
+
+## Poll UI overlay stack to detect changes not captured by state updates
+## This handles cases where M_SceneManager modifies UI without dispatching state actions
+## Using _process instead of _physics_process for more responsive updates
+func _process(_delta: float) -> void:
+	_check_and_resync_pause_state()
+
+## Check if pause state is out of sync and resynchronize if needed
+func _check_and_resync_pause_state() -> void:
+	if not _store or not _ui_overlay_stack:
+		return
+
+	# Check if UI overlay count has changed since last update
+	var current_ui_count: int = _ui_overlay_stack.get_child_count()
+	var has_overlays_in_ui: bool = current_ui_count > 0
+
+	# Get current scene state
+	var scene_state: Dictionary = _store.get_slice(StringName("scene"))
+	var scene_stack: Array = scene_state.get("scene_stack", [])
+	var has_overlays_in_state: bool = scene_stack.size() > 0
+
+	# Calculate what pause state SHOULD be
+	var should_be_paused: bool = has_overlays_in_state or has_overlays_in_ui
+
+	# If there's a mismatch between our internal state and what it should be, OR
+	# if the engine pause doesn't match our internal state, force a resync
+	if should_be_paused != _is_paused or get_tree().paused != _is_paused:
+		var pause_changed: bool = should_be_paused != _is_paused
+		_is_paused = should_be_paused
+		_apply_pause_and_cursor_state()
+
+		if pause_changed:
+			pause_state_changed.emit(_is_paused)
 
 ## Handle state store slice updates (Phase 2: watch scene slice for both pause and scene type)
 func _on_slice_updated(slice_name: StringName, slice_state: Dictionary) -> void:
@@ -82,13 +149,21 @@ func _on_slice_updated(slice_name: StringName, slice_state: Dictionary) -> void:
 	var state_changed: bool = false
 	var pause_changed: bool = false
 
-	# Check pause state (derived from scene_stack size)
+	# Check pause state (derived from scene_stack size AND actual UI)
 	var scene_stack: Array = slice_state.get("scene_stack", [])
-	var new_paused: bool = scene_stack.size() > 0
+	var has_overlays_in_state: bool = scene_stack.size() > 0
+	var has_overlays_in_ui: bool = _ui_overlay_stack != null and _ui_overlay_stack.get_child_count() > 0
+	var new_paused: bool = has_overlays_in_state or has_overlays_in_ui
+
 	if new_paused != _is_paused:
 		_is_paused = new_paused
 		state_changed = true
 		pause_changed = true
+
+	# CRITICAL FIX: Also detect when engine pause state is out of sync with our internal state
+	# This can happen when external code (like test cleanup) modifies get_tree().paused
+	if get_tree().paused != _is_paused:
+		state_changed = true
 
 	# Check scene type changes
 	var new_scene_id: StringName = slice_state.get("current_scene_id", StringName(""))
@@ -97,7 +172,7 @@ func _on_slice_updated(slice_name: StringName, slice_state: Dictionary) -> void:
 		_current_scene_type = _get_scene_type(_current_scene_id)
 		state_changed = true
 
-	# Only apply changes if pause or scene type changed
+	# Apply changes if pause or scene type changed, OR if engine pause is out of sync
 	if state_changed:
 		_apply_pause_and_cursor_state()
 		# Emit signal only if pause state changed

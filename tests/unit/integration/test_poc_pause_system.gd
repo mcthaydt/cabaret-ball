@@ -2,8 +2,11 @@ extends GutTest
 
 ## Proof-of-Concept Integration Tests: Pause System
 ##
-## T070-T074: Updated to test navigation-driven pause architecture
-## Tests that validate state store integration with S_PauseSystem via navigation slice
+## Phase 2: Updated to test scene-driven pause architecture
+## Tests that validate state store integration with S_PauseSystem via scene slice
+
+const U_SceneActions := preload("res://scripts/state/actions/u_scene_actions.gd")
+const RS_SceneInitialState := preload("res://scripts/state/resources/rs_scene_initial_state.gd")
 
 var store: M_StateStore
 var pause_system: Node  # Will be S_PauseSystem once implemented
@@ -19,6 +22,7 @@ func before_each() -> void:
 	store.settings = RS_StateStoreSettings.new()
 	store.gameplay_initial_state = RS_GameplayInitialState.new()
 	store.navigation_initial_state = RS_NavigationInitialState.new()
+	store.scene_initial_state = RS_SceneInitialState.new()
 	autofree(store)
 	add_child(store)
 	await get_tree().process_frame
@@ -30,6 +34,7 @@ func before_each() -> void:
 	await get_tree().process_frame
 
 func after_each() -> void:
+	get_tree().paused = false  # Reset pause state
 	U_StateEventBus.reset()
 	U_ECSEventBus.reset()
 	if store and is_instance_valid(store):
@@ -38,9 +43,9 @@ func after_each() -> void:
 	pause_system = null
 	cursor_manager = null
 
-## T299: Test pause system reacts to navigation state changes (T070 refactor)
+## T299: Test pause system reacts to scene state changes (Phase 2 refactor)
 func test_pause_system_reacts_to_navigation_state() -> void:
-	# T070: S_PauseSystem now watches navigation slice, not gameplay slice
+	# Phase 2: S_PauseSystem now watches scene slice, not navigation slice
 	# Create pause system
 	pause_system = S_PauseSystem.new()
 	add_child(pause_system)
@@ -48,21 +53,19 @@ func test_pause_system_reacts_to_navigation_state() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame  # Extra frame for system to initialize
 
-	# Start gameplay and open pause via navigation action
-	store.dispatch(U_NavigationActions.start_game(StringName("gameplay_base")))
-	await wait_physics_frames(1)
-	store.dispatch(U_NavigationActions.open_pause())
-	await wait_physics_frames(1)  # Navigation slice updates flush on physics frames
+	# Push overlay to scene stack (simulates M_SceneManager behavior)
+	store.dispatch(U_SceneActions.push_overlay(StringName("pause_menu")))
+	await wait_physics_frames(1)  # Scene slice updates flush on physics frames
 
-	# Verify pause system derives pause state from navigation slice
-	var nav_state: Dictionary = store.get_slice(StringName("navigation"))
-	var is_paused: bool = U_NavigationSelectors.is_paused(nav_state)
-	assert_true(is_paused, "Navigation state should indicate paused (overlay stack not empty)")
-	assert_true(pause_system.is_paused(), "Pause system should reflect navigation-derived pause state")
+	# Verify pause system derives pause state from scene slice
+	var scene_state: Dictionary = store.get_slice(StringName("scene"))
+	var scene_stack: Array = scene_state.get("scene_stack", [])
+	assert_eq(scene_stack.size(), 1, "Scene stack should have one overlay")
+	assert_true(pause_system.is_paused(), "Pause system should reflect scene-derived pause state")
 
-## T300: Test pause system applies engine-level pause (T070 refactor)
+## T300: Test pause system applies engine-level pause (Phase 2 refactor)
 func test_pause_system_applies_engine_pause() -> void:
-	# T070: S_PauseSystem now applies get_tree().paused based on navigation state
+	# Phase 2: S_PauseSystem now applies get_tree().paused based on scene state
 	# Create pause system
 	pause_system = S_PauseSystem.new()
 	add_child(pause_system)
@@ -73,39 +76,37 @@ func test_pause_system_applies_engine_pause() -> void:
 	# Reset engine pause
 	get_tree().paused = false
 
-	# Open pause overlay via navigation action
-	store.dispatch(U_NavigationActions.start_game(StringName("gameplay_base")))
-	await wait_physics_frames(1)
-	store.dispatch(U_NavigationActions.open_pause())
-	await wait_physics_frames(1)  # Navigation slice updates flush on physics frames
+	# Push overlay to scene stack (simulates M_SceneManager opening overlay)
+	store.dispatch(U_SceneActions.push_overlay(StringName("pause_menu")))
+	await wait_physics_frames(2)  # Scene slice updates flush on physics frames, S_PauseSystem reacts
 
 	# Verify engine pause applied
-	assert_true(get_tree().paused, "Engine should be paused when navigation state has overlays")
+	assert_true(get_tree().paused, "Engine should be paused when scene stack has overlays")
 	assert_true(pause_system.is_paused(), "Pause system should reflect paused state")
 
 	# Cleanup
 	get_tree().paused = false
 
-## T301: Test movement disabled when paused
+## T301: Test pause state accessible when overlays present (Phase 2)
 func test_movement_disabled_when_paused() -> void:
-	# This test verifies that systems check pause state (already implemented in systems)
-	# We'll verify that the pause state is correctly set and readable
-	
+	# Phase 2: Pause is derived from scene overlays, systems check get_tree().paused
 	# Create pause system
 	pause_system = S_PauseSystem.new()
 	add_child(pause_system)
 	autofree(pause_system)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	
-	# Pause the game
-	store.dispatch(U_GameplayActions.pause_game())
-	await get_tree().process_frame
-	
-	# Verify pause state is accessible for systems to check
-	var gameplay_state: Dictionary = store.get_slice(StringName("gameplay"))
-	var is_paused: bool = U_GameplaySelectors.get_is_paused(gameplay_state)
-	assert_true(is_paused, "Gameplay state should indicate paused")
-	
-	# Movement/jump/input systems already check this state in their process_tick
+
+	# Pause by pushing an overlay to scene stack
+	store.dispatch(U_SceneActions.push_overlay(StringName("pause_menu")))
+	await wait_physics_frames(1)
+
+	# Verify engine pause is set (systems check this)
+	assert_true(get_tree().paused, "Engine should be paused with overlay in scene stack")
+	assert_true(pause_system.is_paused(), "Pause system should indicate paused")
+
+	# Movement/jump/input systems check get_tree().paused or pause_system.is_paused()
 	# This test confirms the integration point works
+
+	# Cleanup
+	get_tree().paused = false

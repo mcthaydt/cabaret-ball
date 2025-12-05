@@ -98,17 +98,29 @@ version: "1.0"
 
 ### S_PauseSystem Refactor
 
-- [ ] T021 Refactor `S_PauseSystem` to derive pause and cursor state from scene slice:
-  - Subscribe to scene slice updates (NOT navigation slice).
-  - Derive pause from `scene.scene_stack.size() > 0` (overlays = paused).
-  - Derive cursor from BOTH pause state AND scene type.
-  - **Cursor logic**:
+- [x] T021 Refactor `S_PauseSystem` to derive pause and cursor state from scene slice:
+  - Subscribe to scene slice updates (NOT navigation slice). ✓
+  - Derive pause from `scene.scene_stack.size() > 0` (overlays = paused). ✓
+  - Derive cursor from BOTH pause state AND scene type. ✓
+  - **Cursor logic**: ✓
     - If paused (overlays present): cursor visible & unlocked
     - If not paused:
       - MENU/UI/END_GAME scenes: cursor visible & unlocked
       - GAMEPLAY scenes: cursor hidden & locked
-  - Set `process_mode = Node.PROCESS_MODE_ALWAYS` (can unpause tree).
-  - **NEW**: Ensure proper initialization - wait for tree ready before subscribing to slice.
+  - Set `process_mode = Node.PROCESS_MODE_ALWAYS` (can unpause tree). ✓
+  - **NEW**: Ensure proper initialization - synchronous init + _process() polling for robustness. ✓
+  - **FIXES APPLIED**:
+    - Changed initialization from async to synchronous (scripts/ecs/systems/s_pause_system.gd:43-72)
+    - Added _process() polling to detect UI/state mismatches (scripts/ecs/systems/s_pause_system.gd:114-143)
+    - Added engine pause desync detection in _on_slice_updated() (scripts/ecs/systems/s_pause_system.gd:163-167)
+    - Moved process_mode to _init() for earlier activation (scripts/ecs/systems/s_pause_system.gd:37-41)
+    - Gracefully handle missing state store in test environments
+    - Applied same graceful store handling to M_SpawnManager (scripts/managers/m_spawn_manager.gd:37-41)
+  - **TESTS FIXED**:
+    - test_navigation_open_and_close_pause_overlay ✓
+    - test_pause_system_applies_engine_pause ✓
+    - test_clears_stale_state_when_ui_empty ✓
+  - **DOCUMENTATION**: Added S_PauseSystem initialization timing pitfall to DEV_PITFALLS.md
 
 ### M_SceneManager Cleanup
 
@@ -164,6 +176,63 @@ version: "1.0"
   - Input/navigation tests.
   - Verify no regressions in cursor behavior during transitions.
   - **NEW**: Run tests multiple times to catch race conditions.
+
+### Manual Testing (Post-Phase 2)
+
+- [ ] T026 Perform manual pause/unpause testing:
+  - **Pause/Unpause Flow**:
+    - Start game → press ESC → verify game pauses, cursor visible
+    - Press ESC/resume → verify game unpauses, cursor hides (gameplay)
+  - **Nested Overlay Flow**:
+    - Pause → Settings → verify stays paused, settings replaces pause
+    - Back → verify pause restored, still paused
+    - Resume → verify unpauses, cursor hides
+  - **Scene Transitions with Overlays**:
+    - Pause during gameplay → Quit to Menu → verify transition completes, no stuck pause
+    - Verify main menu has visible cursor, not paused
+  - **Cursor State Across Scene Types**:
+    - Gameplay: cursor hidden & locked (when not paused)
+    - Gameplay + Pause: cursor visible & unlocked
+    - Menu/UI scenes: cursor visible & unlocked
+    - End game scenes: cursor visible & unlocked
+  - **Bootstrap/Startup**:
+    - Close and restart game → verify starts unpaused
+    - Verify no error spam in console
+    - Verify pause system initializes without warnings
+  - **Edge Cases**:
+    - Rapid ESC spam → verify pause state stays consistent
+    - Scene transition during pause → verify new scene loads with correct state
+    - Multiple nested overlays → verify each layer restores correctly
+  - **Watch for Regressions**:
+    - Game stuck paused after closing overlay
+    - Cursor visible during gameplay
+    - Cursor locked in menus
+    - Console errors about missing state store
+    - Pause state not syncing with overlay presence
+    - Input not working after unpause
+  - **Test Environments**: Editor play mode (F5/F6) and standalone build if available
+
+### Phase 2 Status Summary
+
+**Completed (2024-12-04)**:
+- ✅ T021: S_PauseSystem refactored with synchronous initialization and _process() polling
+- ✅ All 3 originally failing tests now passing (test_navigation_open_and_close_pause_overlay, test_pause_system_applies_engine_pause, test_clears_stale_state_when_ui_empty)
+- ✅ Documentation added to DEV_PITFALLS.md (S_PauseSystem initialization timing section)
+- ✅ M_SpawnManager updated to gracefully handle missing state store
+- ✅ UIInputHandler debug logs removed
+- ✅ All unit tests passing (132/136 passed, 4 pending/skipped for tween timing)
+
+**Remaining Tasks**:
+- T020: Document pause/cursor authority model (separate note)
+- T022: Remove pause/cursor control from M_SceneManager
+- T023: Audit codebase for pause/cursor authority violations
+- T024a: Add S_PauseSystem to root.tscn
+- T024b: Update remaining pause-related integration tests
+- T024c: Verify main menu cursor behavior
+- T025: Run full integration test suite
+- T026: Perform manual pause/unpause testing
+
+**Next Step**: Continue with T020 (document authority model) or proceed to T022 (M_SceneManager cleanup).
 
 ---
 

@@ -767,6 +767,8 @@ store.dispatch(U_NavigationActions.close_pause())
 
 4. **Ignoring transition state**: Overlay reconciliation defers during base scene transitions. Don't assume pause overlays push immediately—reconciliation may be deferred.
 
+5. **Pause system initialization timing**: S_PauseSystem must initialize synchronously (not async) to subscribe to state updates before M_SceneManager syncs overlay state in its `_ready()`. Async initialization causes the pause system to miss initial state changes. See "S_PauseSystem Initialization Timing" section below.
+
 ### Testing Patterns (Phase 4b)
 
 When testing pause/UI flows:
@@ -782,6 +784,51 @@ await wait_physics_frames(2)
 _scene_manager._input(event)  # Removed in T072
 _cursor_manager.toggle_cursor()  # Removed in T071
 ```
+
+### S_PauseSystem Initialization Timing
+
+**Problem**: S_PauseSystem may miss state updates if initialization is async
+
+The pause system subscribes to `scene.slice_updated` to detect overlay changes and apply engine pause. If initialization uses `await get_tree().process_frame`, the following race condition occurs:
+
+1. S_PauseSystem added to tree → `_ready()` starts → awaits frame (paused in middle of `_ready()`)
+2. M_SceneManager added to tree → `_ready()` runs completely → syncs overlay state (clears stale overlays)
+3. Frame completes, test checks state
+4. S_PauseSystem's await completes AFTER test checks → subscribes too late
+
+**Symptoms**:
+- `get_tree().paused` doesn't match actual overlay state
+- Tests fail with "Tree should be unpaused without overlays" when state is correct but pause system hasn't synced yet
+- Pause system's `is_paused()` returns stale value
+
+**Solution** (implemented in s_pause_system.gd:43-95):
+```gdscript
+func _ready() -> void:
+    super._ready()
+
+    # Get store synchronously - no await!
+    _store = U_StateUtils.get_store(self)
+
+    if not _store:
+        # Defer if store not ready, but don't block _ready()
+        call_deferred("_deferred_init")
+        return
+
+    _initialize()  # Synchronous initialization
+
+# Also use _process() polling as backup:
+func _process(_delta: float) -> void:
+    _check_and_resync_pause_state()  # Detects state/engine pause mismatches
+```
+
+**Why polling is needed**:
+Even with synchronous initialization, state updates can arrive BEFORE UI changes (or vice versa) due to signal timing. The `_process()` polling ensures pause state stays synced by checking BOTH:
+- `scene.scene_stack` (state)
+- `UIOverlayStack.get_child_count()` (actual UI)
+
+If they disagree with current pause state, force a resync.
+
+**Related**: See "Store Access Race Condition" below for general store initialization patterns.
 
 ### Documentation References
 

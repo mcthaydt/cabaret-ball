@@ -8,6 +8,7 @@ const M_CursorManager := preload("res://scripts/managers/m_cursor_manager.gd")
 const M_SpawnManager := preload("res://scripts/managers/m_spawn_manager.gd")
 const M_CameraManager := preload("res://scripts/managers/m_camera_manager.gd")
 const M_InputProfileManager := preload("res://scripts/managers/m_input_profile_manager.gd")
+const S_PauseSystem := preload("res://scripts/ecs/systems/s_pause_system.gd")
 const U_NavigationActions := preload("res://scripts/state/actions/u_navigation_actions.gd")
 
 var _store: M_StateStore
@@ -18,6 +19,7 @@ var _cursor_manager: M_CursorManager
 var _spawn_manager: M_SpawnManager
 var _camera_manager: M_CameraManager
 var _profile_manager: M_InputProfileManager
+var _pause_system: S_PauseSystem
 
 func before_each() -> void:
 	# Minimal scene tree for SceneManager overlays
@@ -59,12 +61,19 @@ func before_each() -> void:
 	add_child_autofree(_profile_manager)
 	await get_tree().process_frame
 
+	# Create S_PauseSystem to apply pause based on scene state
+	_pause_system = S_PauseSystem.new()
+	add_child_autofree(_pause_system)
+	await get_tree().process_frame
+
 func after_each() -> void:
+	get_tree().paused = false  # Reset pause state
 	_store = null
 	_ui_overlay_stack = null
 	_active_scene_container = null
 	_transition_overlay = null
 	_profile_manager = null
+	_pause_system = null
 
 func test_pause_menu_opens_profile_selector_overlay() -> void:
 	var manager := M_SceneManager.new()

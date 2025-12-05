@@ -7,6 +7,7 @@ const RS_SceneInitialState := preload("res://scripts/state/resources/rs_scene_in
 const M_CursorManager := preload("res://scripts/managers/m_cursor_manager.gd")
 const M_SpawnManager := preload("res://scripts/managers/m_spawn_manager.gd")
 const M_CameraManager := preload("res://scripts/managers/m_camera_manager.gd")
+const S_PauseSystem := preload("res://scripts/ecs/systems/s_pause_system.gd")
 const U_NavigationActions := preload("res://scripts/state/actions/u_navigation_actions.gd")
 const U_NavigationSelectors := preload("res://scripts/state/selectors/u_navigation_selectors.gd")
 
@@ -20,6 +21,7 @@ var _loading_overlay: CanvasLayer
 var _cursor_manager: M_CursorManager
 var _spawn_manager: M_SpawnManager
 var _camera_manager: M_CameraManager
+var _pause_system: S_PauseSystem
 
 func before_each() -> void:
 	_active_scene_container = Node.new()
@@ -58,7 +60,13 @@ func before_each() -> void:
 	add_child_autofree(_store)
 	await get_tree().process_frame
 
+	# Create S_PauseSystem to apply pause based on scene state
+	_pause_system = S_PauseSystem.new()
+	add_child_autofree(_pause_system)
+	await get_tree().process_frame
+
 func after_each() -> void:
+	get_tree().paused = false  # Reset pause state
 	_store = null
 	_active_scene_container = null
 	_ui_overlay_stack = null
@@ -67,6 +75,7 @@ func after_each() -> void:
 	_cursor_manager = null
 	_spawn_manager = null
 	_camera_manager = null
+	_pause_system = null
 
 func test_navigation_open_and_close_pause_overlay() -> void:
 	await _spawn_scene_manager()
@@ -75,7 +84,7 @@ func test_navigation_open_and_close_pause_overlay() -> void:
 	await _await_scene(StringName("scene1"))
 
 	_store.dispatch(U_NavigationActions.open_pause())
-	await wait_physics_frames(3)
+	await wait_physics_frames(5)  # Allow time for navigation→scene bridging + S_PauseSystem reaction
 
 	assert_true(get_tree().paused, "Tree should pause when pause overlay opens")
 	assert_eq(_ui_overlay_stack.get_child_count(), 1, "Pause overlay added to stack")

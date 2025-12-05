@@ -48,15 +48,6 @@ func _handle_ui_cancel() -> void:
 	var active_panel: StringName = U_NavigationSelectors.get_active_menu_panel(nav_state)
 	var base_scene_id: StringName = U_NavigationSelectors.get_base_scene_id(nav_state)
 
-	print(
-		"[UIInputHandler] _handle_ui_cancel shell=%s base_scene_id=%s active_panel=%s overlay_stack_size=%d" % [
-			str(shell),
-			str(base_scene_id),
-			str(active_panel),
-			overlay_stack.size()
-		]
-	)
-
 	# Context matrix per flows-and-input.md section 3.2
 	match shell:
 		U_NavigationReducer.SHELL_GAMEPLAY:
@@ -82,13 +73,6 @@ func _handle_gameplay_cancel(overlay_stack: Array) -> void:
 
 ## Handle cancel in main menu shell
 func _handle_main_menu_cancel(active_panel: StringName, base_scene_id: StringName) -> void:
-	print(
-		"[UIInputHandler] _handle_main_menu_cancel active_panel=%s base_scene_id=%s" % [
-			str(active_panel),
-			str(base_scene_id)
-		]
-	)
-
 	# Only apply root-panel behavior when the active base scene is the main
 	# menu itself. Standalone menu scenes (settings_menu, gamepad_settings,
 	# touchscreen_settings, input_rebinding, etc.) run in the main_menu shell

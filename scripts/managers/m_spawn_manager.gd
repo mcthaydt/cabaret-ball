@@ -34,9 +34,11 @@ func _ready() -> void:
 	# Add to spawn_manager group for discovery
 	add_to_group("spawn_manager")
 
-	# Find state store
+	# Find state store (gracefully handle missing store in test environments)
 	await get_tree().process_frame
-	_state_store = U_STATE_UTILS.get_store(self)
+	var stores := get_tree().get_nodes_in_group("state_store")
+	if stores.size() > 0:
+		_state_store = stores[0] as M_STATE_STORE
 
 ## Spawn player at specified spawn point (T220)
 ##
