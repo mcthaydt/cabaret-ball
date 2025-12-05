@@ -19,6 +19,7 @@ var movement_comp: C_MovementComponent
 var jump_comp: C_JumpComponent
 var floating_comp: C_FloatingComponent
 var _unsubscribe_jump: Callable = Callable()
+var _state_store: M_StateStore = null
 
 ## Track events published during test
 var events_received: Array[Dictionary] = []
@@ -31,6 +32,12 @@ func before_each():
 	manager = null
 	player_entity = null
 	_unsubscribe_jump = Callable()
+
+	# Create and add M_StateStore for systems that require it
+	_state_store = M_StateStore.new()
+	add_child(_state_store)
+	autofree(_state_store)
+	await get_tree().process_frame
 
 func after_each():
 	if _unsubscribe_jump != Callable() and _unsubscribe_jump.is_valid():

@@ -1,6 +1,6 @@
 extends GutTest
 
-const UIInputHandler := preload("res://scripts/ui/ui_input_handler.gd")
+const M_UIInputHandler := preload("res://scripts/managers/m_ui_input_handler.gd")
 const M_StateStore := preload("res://scripts/state/m_state_store.gd")
 const RS_StateStoreSettings := preload("res://scripts/state/resources/rs_state_store_settings.gd")
 const RS_BootInitialState := preload("res://scripts/state/resources/rs_boot_initial_state.gd")
@@ -14,7 +14,7 @@ const U_NavigationReducer := preload("res://scripts/state/reducers/u_navigation_
 const U_StateHandoff := preload("res://scripts/state/utils/u_state_handoff.gd")
 
 var _store: M_StateStore = null
-var _input_handler: UIInputHandler = null
+var _input_handler: M_UIInputHandler = null
 
 func before_each() -> void:
 	U_StateHandoff.clear_all()
@@ -217,8 +217,8 @@ func _create_state_store() -> M_StateStore:
 	return store
 
 
-func _create_input_handler() -> UIInputHandler:
-	var handler := UIInputHandler.new()
+func _create_input_handler() -> M_UIInputHandler:
+	var handler := M_UIInputHandler.new()
 	add_child_autofree(handler)
 	await wait_process_frames(1)
 	return handler

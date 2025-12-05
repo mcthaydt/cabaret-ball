@@ -20,7 +20,7 @@
 [ext_resource type="PackedScene" uid="uid://bbq72nhhlq7bc" path="res://scenes/ui/ui_mobile_controls.tscn" id="18_mobile_controls"]
 [ext_resource type="Resource" uid="uid://cxgny75sx0rxu" path="res://resources/state/default_debug_initial_state.tres" id="19_debug_state"]
 [ext_resource type="Resource" uid="uid://dtak7mhm8w170" path="res://resources/state/navigation_initial_state.tres" id="20_navigation_state"]
-[ext_resource type="Script" uid="uid://b16upnm5w5ttw" path="res://scripts/ui/ui_input_handler.gd" id="21_ui_input_handler"]
+[ext_resource type="Script" uid="uid://djo7buwae0cuf" path="res://scripts/managers/m_ui_input_handler.gd" id="21_ui_input_handler"]
 [ext_resource type="Script" uid="uid://dly8j7l7honqd" path="res://scripts/managers/m_pause_manager.gd" id="22_pause_manager"]
 
 [node name="Root" type="Node"]
@@ -61,7 +61,7 @@ script = ExtResource("16_input_profile_manager")
 [node name="M_InputDeviceManager" type="Node" parent="Managers"]
 script = ExtResource("17_input_device_manager")
 
-[node name="UIInputHandler" type="Node" parent="Managers"]
+[node name="M_UIInputHandler" type="Node" parent="Managers"]
 script = ExtResource("21_ui_input_handler")
 
 [node name="ActiveSceneContainer" type="Node" parent="."]

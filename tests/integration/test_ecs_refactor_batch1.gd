@@ -5,6 +5,15 @@ const ECS_MANAGER := preload("res://scripts/managers/m_ecs_manager.gd")
 const ECS_SYSTEM := preload("res://scripts/ecs/ecs_system.gd")
 const ECS_COMPONENT := preload("res://scripts/ecs/ecs_component.gd")
 
+var _state_store: M_StateStore = null
+
+func before_each() -> void:
+	# Create and add M_StateStore for systems that require it
+	_state_store = M_StateStore.new()
+	add_child(_state_store)
+	autofree(_state_store)
+	await get_tree().process_frame
+
 func _setup_base_scene() -> Dictionary:
 	await get_tree().process_frame
 	var scene := BASE_SCENE.instantiate()

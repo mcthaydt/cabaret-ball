@@ -1,5 +1,6 @@
 @icon("res://resources/editor_icons/utility.svg")
 extends CanvasLayer
+class_name UI_HudController
 
 const U_StateUtils := preload("res://scripts/state/utils/u_state_utils.gd")
 const U_EntitySelectors := preload("res://scripts/state/selectors/u_entity_selectors.gd")

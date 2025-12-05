@@ -200,6 +200,7 @@ This matrix documents all allowed filename and class prefixes by category. **Eve
 | **Interface Scripts** | `i_*.gd` | `i_scene_contract.gd` → `I_SCENE_CONTRACT` | Interface definitions follow GDScript interface pattern |
 | **Event Buses** | `*_event_bus.gd` / `event_bus_base.gd` | `u_ecs_event_bus.gd` → `U_ECSEventBus`, `event_bus_base.gd` → `EventBusBase` | Base event bus is foundational, utility event buses use `u_` prefix |
 | **Entity Query** | `entity_query.gd` | `entity_query.gd` → `EntityQuery` | Standalone utility class for ECS queries |
+| **UI Navigation Helpers** | `analog_stick_repeater.gd` | `analog_stick_repeater.gd` → `AnalogStickRepeater` | Specialized UI navigation helper that doesn't fit standard categorization |
 
 ### Directories: `snake_case` (plural)
 

@@ -9,10 +9,18 @@ const ECS_UTILS := preload("res://scripts/utils/u_ecs_utils.gd")
 const EVENT_JUMPED := StringName("entity_jumped")
 const EVENT_LANDED := StringName("entity_landed")
 
+var _state_store: M_StateStore = null
+
 func before_each() -> void:
 	EVENT_BUS.reset()
 	# Clear state handoff to prevent interference between tests
 	U_StateHandoff.clear_all()
+
+	# Create and add M_StateStore for systems that require it
+	_state_store = M_StateStore.new()
+	add_child(_state_store)
+	autofree(_state_store)
+	await get_tree().process_frame
 
 func after_each() -> void:
 	pass

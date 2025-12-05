@@ -224,10 +224,10 @@ script = ExtResource("16_8qi87")
 
 [node name="E_Player" parent="Entities" instance=ExtResource("7_4wxy1")]
 
-[node name="E_Camera" parent="Entities" instance=ExtResource("19_ph0bl")]
+[node name="E_CameraRoot" parent="Entities" instance=ExtResource("19_ph0bl")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 4.5)
 
-[node name="E_PlayerCamera" parent="Entities/E_Camera" index="0"]
+[node name="E_PlayerCamera" parent="Entities/E_CameraRoot" index="0"]
 fov = 80.0
 
 [node name="E_DoorTrigger" type="Node3D" parent="Entities"]
@@ -243,41 +243,41 @@ material_overlay = SubResource("StandardMaterial3D_door")
 radius = 0.7910156
 height = 2.0715332
 
-[node name="E_Hazards" type="Node" parent="Entities"]
+[node name="Hazards" type="Node" parent="Entities"]
 script = ExtResource("16_8qi87")
 
-[node name="E_DeathZone" type="Node3D" parent="Entities/E_Hazards"]
+[node name="E_DeathZone" type="Node3D" parent="Entities/Hazards"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -10, 0)
 script = ExtResource("44_hazard_controller")
 is_instant_death = true
 settings = ExtResource("44_death_settings")
 
-[node name="E_SpikeTrapA" type="Node3D" parent="Entities/E_Hazards"]
+[node name="E_SpikeTrapA" type="Node3D" parent="Entities/Hazards"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, 3)
 script = ExtResource("44_hazard_controller")
 settings = ExtResource("44_spike_settings")
 visual_paths = Array[NodePath]([NodePath("MeshInstance3D"), NodePath("SpikeTips")])
 
-[node name="MeshInstance3D" type="CSGBox3D" parent="Entities/E_Hazards/E_SpikeTrapA"]
+[node name="MeshInstance3D" type="CSGBox3D" parent="Entities/Hazards/E_SpikeTrapA"]
 size = Vector3(1.5, 0.5, 1.5)
 material = SubResource("StandardMaterial3D_spike")
 
-[node name="SpikeTips" type="CSGCylinder3D" parent="Entities/E_Hazards/E_SpikeTrapA"]
+[node name="SpikeTips" type="CSGCylinder3D" parent="Entities/Hazards/E_SpikeTrapA"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 height = 1.0
 material = SubResource("StandardMaterial3D_spike")
 
-[node name="E_SpikeTrapB" type="Node3D" parent="Entities/E_Hazards"]
+[node name="E_SpikeTrapB" type="Node3D" parent="Entities/Hazards"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, 3)
 script = ExtResource("44_hazard_controller")
 settings = ExtResource("44_spike_settings")
 visual_paths = Array[NodePath]([NodePath("MeshInstance3D"), NodePath("SpikeTips")])
 
-[node name="MeshInstance3D" type="CSGBox3D" parent="Entities/E_Hazards/E_SpikeTrapB"]
+[node name="MeshInstance3D" type="CSGBox3D" parent="Entities/Hazards/E_SpikeTrapB"]
 size = Vector3(1.5, 0.5, 1.5)
 material = SubResource("StandardMaterial3D_spike")
 
-[node name="SpikeTips" type="CSGCylinder3D" parent="Entities/E_Hazards/E_SpikeTrapB"]
+[node name="SpikeTips" type="CSGCylinder3D" parent="Entities/Hazards/E_SpikeTrapB"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 height = 1.0
 material = SubResource("StandardMaterial3D_spike")
@@ -321,21 +321,21 @@ lifetime = 1.5
 preprocess = 0.5
 mesh = SubResource("TextMesh_goal")
 
-[node name="SP_SpawnPoints" type="Node3D" parent="."]
+[node name="SP_SpawnPoints" type="Node3D" parent="Entities"]
 script = ExtResource("21_spawnpoints")
 
-[node name="sp_default" type="Node3D" parent="SP_SpawnPoints"]
+[node name="sp_default" type="Node3D" parent="Entities/SP_SpawnPoints"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.3674707, 0)
 script = ExtResource("21_spawnpoints")
 
-[node name="sp_checkpoint_safe" type="Node3D" parent="SP_SpawnPoints"]
+[node name="sp_checkpoint_safe" type="Node3D" parent="Entities/SP_SpawnPoints"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.1999226, 3.6344914, -2.3520212)
 script = ExtResource("21_spawnpoints")
 
-[node name="sp_exit_from_house" type="Node3D" parent="SP_SpawnPoints"]
+[node name="sp_exit_from_house" type="Node3D" parent="Entities/SP_SpawnPoints"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.7472486, -0.31296825, 1.4028394)
 script = ExtResource("21_spawnpoints")
 
 [node name="HUD" parent="." instance=ExtResource("11_hud")]
 
-[editable path="Entities/E_Camera"]
+[editable path="Entities/E_CameraRoot"]

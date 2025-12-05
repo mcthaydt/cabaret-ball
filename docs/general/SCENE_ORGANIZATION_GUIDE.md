@@ -36,8 +36,7 @@ GameplayRoot (Node3D) [main_root_node.gd]
 │
 ├─ Systems (Node) [systems_group.gd]
 │  ├─ Core (Node) [systems_core_group.gd]
-│  │  ├─ S_InputSystem (priority: 0)
-│  │  └─ M_PauseManager (priority: 5)
+│  │  └─ S_InputSystem (priority: 0)
 │  │
 │  ├─ Physics (Node) [systems_physics_group.gd]
 │  │  ├─ S_GravitySystem (priority: 60)
@@ -62,16 +61,44 @@ GameplayRoot (Node3D) [main_root_node.gd]
 │
 ├─ Entities (Node) [entities_group.gd]
 │  ├─ SP_SpawnPoints (Node3D) [spawn_points_group.gd]
-│  │  ├─ sp_entrance_from_exterior (Node3D)
-│  │  └─ sp_exit_from_house (Node3D)
+│  │  ├─ sp_entrance_from_exterior (Node3D) [spawn_points_group.gd]
+│  │  ├─ sp_exit_from_house (Node3D) [spawn_points_group.gd]
+│  │  └─ sp_default (Node3D) [spawn_points_group.gd]
 │  ├─ E_Player (player_template.tscn instance)
-│  └─ E_CameraRoot (camera_template.tscn instance)
+│  ├─ E_CameraRoot (camera_template.tscn instance)
+│  ├─ Hazards (Node) [entities_group.gd] - Container for hazard entities
+│  │  ├─ E_DeathZone (Node3D + hazard_controller.gd)
+│  │  ├─ E_SpikeTrapA (Node3D + hazard_controller.gd)
+│  │  │  ├─ MeshInstance3D (CSGBox3D)
+│  │  │  └─ SpikeTips (CSGCylinder3D)
+│  │  └─ ... (other hazards)
+│  └─ Objectives (Node) [entities_group.gd] - Container for objective entities
+│     └─ E_GoalZone (Node3D + victory_controller.gd)
+│        ├─ Visual (CSGCylinder3D)
+│        ├─ GlowLight (OmniLight3D)
+│        └─ Sparkles (CPUParticles3D)
 │
 └─ HUD (CanvasLayer or Control)
    └─ (UI elements)
 ```
 
 `GameplayRoot` is the canonical root name for gameplay scenes; it must use the `main_root_node.gd` marker script.
+
+### Important: Node Hierarchy Rules
+
+**All child nodes MUST be properly nested under their parent containers:**
+
+1. **Spawn Points**: Individual spawn point markers (`sp_*`) must be children of the `SP_SpawnPoints` container node, NOT top-level siblings.
+   - ✅ Correct: `Entities/SP_SpawnPoints/sp_default`
+   - ❌ Wrong: `Entities/SP_SpawnPoints` and `SP_SpawnPoints#sp_default` as siblings
+
+2. **Entity Visual Children**: Meshes, lights, particles, and collision shapes must be children of their entity node, NOT siblings.
+   - ✅ Correct: `Entities/Hazards/E_SpikeTrapA/MeshInstance3D`
+   - ❌ Wrong: `Entities/Hazards/E_SpikeTrapA` and `Entities_Hazards_E_SpikeTrapA#MeshInstance3D` as flattened paths
+
+3. **Container Naming**: Entity containers like `Hazards` and `Objectives` do NOT use the `E_` prefix (only individual entities do).
+
+When renaming container nodes, ensure ALL child node parent paths are updated to match the new container name.
 
 ---
 
@@ -143,11 +170,12 @@ Systems are organized into **four functional categories** for better visual orga
 
 **Systems:**
 - `S_InputSystem` (priority: 0) - Input capture and processing
-- `M_PauseManager` (priority: 5) - Engine pause state management (sole authority)
 - `S_TouchscreenSystem` - Mobile virtual controls coordination
 - `S_CheckpointSystem` - Checkpoint activation and respawn point updates
 - `S_SceneTriggerSystem` - Door and scene transition triggers
 - `S_VictorySystem` - Victory condition detection and endgame flows
+
+**Note:** `M_PauseManager` now lives in `root.tscn` (Phase 2 architecture) and is NOT included in gameplay scenes.
 
 ### Physics Systems
 **Purpose:** Physics simulation and forces
@@ -186,6 +214,25 @@ Systems are organized into **four functional categories** for better visual orga
 - `S_LandingParticlesSystem` (priority: 122) - Landing particle effects
 - `S_SpawnParticlesSystem` - Player spawn VFX
 - `S_GamepadVibrationSystem` - Haptic feedback for gamepad
+
+---
+
+## Optional: M_GameplayInitializer (Testing Helper)
+
+**Purpose:** Ensures player spawns at `sp_default` when gameplay scenes are loaded directly (not through `M_SceneManager` transitions).
+
+**Use Cases:**
+- Running gameplay scenes directly in the editor (F6)
+- Unit/integration tests that load gameplay scenes directly
+- Initial game boot to a gameplay scene
+
+**Integration:**
+- Add as child of gameplay scene root (optional, not required for production)
+- Discovers `M_SpawnManager` via "spawn_manager" group
+- Only spawns if player is NOT already at spawn point (avoids double-spawn)
+- Some scenes like `gameplay_base.tscn` and `gameplay_exterior.tscn` include it for convenience
+
+**Note:** NOT required for normal gameplay - `M_SceneManager` handles spawning during scene transitions. This is purely a development convenience.
 
 ---
 

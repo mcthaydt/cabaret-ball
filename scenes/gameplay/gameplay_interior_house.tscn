@@ -196,10 +196,10 @@ script = ExtResource("16_8qi87")
 [node name="E_Player" parent="Entities" instance=ExtResource("7_4wxy1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.190454, 1.0887601, 1.7809162)
 
-[node name="E_Camera" parent="Entities" instance=ExtResource("19_ph0bl")]
+[node name="E_CameraRoot" parent="Entities" instance=ExtResource("19_ph0bl")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 4.5)
 
-[node name="E_PlayerCamera" parent="Entities/E_Camera" index="0"]
+[node name="E_PlayerCamera" parent="Entities/E_CameraRoot" index="0"]
 fov = 65.0
 
 [node name="E_DoorTrigger" type="Node3D" parent="Entities"]
@@ -217,19 +217,19 @@ material_overlay = SubResource("StandardMaterial3D_ee6xw")
 radius = 0.7910156
 height = 2.0715332
 
-[node name="E_Hazards" type="Node" parent="Entities"]
+[node name="Hazards" type="Node" parent="Entities"]
 script = ExtResource("16_8qi87")
 
-[node name="E_DeathZone" type="Node3D" parent="Entities/E_Hazards"]
+[node name="E_DeathZone" type="Node3D" parent="Entities/Hazards"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -10, 0)
 script = ExtResource("44_hazard_controller")
 is_instant_death = true
 settings = ExtResource("44_death_settings")
 
-[node name="E_Objectives" type="Node" parent="Entities"]
+[node name="Objectives" type="Node" parent="Entities"]
 script = ExtResource("16_8qi87")
 
-[node name="E_GoalZone" type="Node3D" parent="Entities/E_Objectives"]
+[node name="E_GoalZone" type="Node3D" parent="Entities/Objectives"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, -0.41013765, -10.004155)
 script = ExtResource("44_victory_controller")
 objective_id = &"goal_interior"
@@ -237,16 +237,16 @@ area_id = "interior_house"
 settings = ExtResource("44_goal_settings")
 visual_paths = Array[NodePath]([NodePath("Visual"), NodePath("Sparkles"), NodePath("GlowLight")])
 
-[node name="Visual" type="CSGCylinder3D" parent="Entities/E_Objectives/E_GoalZone"]
+[node name="Visual" type="CSGCylinder3D" parent="Entities/Objectives/E_GoalZone"]
 radius = 1.5
 material = SubResource("StandardMaterial3D_goal")
 
-[node name="GlowLight" type="OmniLight3D" parent="Entities/E_Objectives/E_GoalZone"]
+[node name="GlowLight" type="OmniLight3D" parent="Entities/Objectives/E_GoalZone"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 light_color = Color(1, 0.87451, 0.364706, 1)
 light_energy = 2.0
 
-[node name="Sparkles" type="CPUParticles3D" parent="Entities/E_Objectives/E_GoalZone"]
+[node name="Sparkles" type="CPUParticles3D" parent="Entities/Objectives/E_GoalZone"]
 amount = 80
 lifetime = 1.5
 preprocess = 0.5
@@ -269,17 +269,17 @@ light_color = Color(0.8, 0.9, 1, 1)
 light_energy = 1.5
 omni_range = 1.863689
 
-[node name="SP_SpawnPoints" type="Node3D" parent="."]
+[node name="SP_SpawnPoints" type="Node3D" parent="Entities"]
 script = ExtResource("21_spawnpoints")
 
-[node name="sp_default" type="Node3D" parent="SP_SpawnPoints"]
+[node name="sp_default" type="Node3D" parent="Entities/SP_SpawnPoints"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.7123368, 1.0887601, 1.7809162)
 script = ExtResource("21_spawnpoints")
 
-[node name="sp_entrance_from_exterior" type="Node3D" parent="SP_SpawnPoints"]
+[node name="sp_entrance_from_exterior" type="Node3D" parent="Entities/SP_SpawnPoints"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.3252916, -0.40663242, 1.4185565)
 script = ExtResource("21_spawnpoints")
 
 [node name="HUD" parent="." instance=ExtResource("11_hud")]
 
-[editable path="Entities/E_Camera"]
+[editable path="Entities/E_CameraRoot"]

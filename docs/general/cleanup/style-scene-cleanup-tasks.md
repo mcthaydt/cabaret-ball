@@ -255,7 +255,7 @@ version: "1.0"
 
 **Audit Scope:** Entire codebase (scripts/, scenes/, resources/) excluding addons and docs
 **Completion Date:** December 5, 2025
-**Overall Compliance:** 90% (scripts: 95.4%, scenes: ~75%, resources: 100%)
+**Overall Compliance:** 91% (scripts: 95.4%, scenes: ~80%, resources: 100%)
 
 #### Scripts Audit Summary (175 files)
 
@@ -294,8 +294,8 @@ version: "1.0"
 
 #### Scenes Audit Summary (40+ files)
 
-**Compliance:** ~75% (major patterns correct, structural issues present)
-**Violations:** 23 total (5 critical, 6 high, 9 medium, 3 low)
+**Compliance:** ~80% (major patterns correct, structural issues present)
+**Violations:** 16 total (5 critical, 6 high, 6 medium, 2 low)
 
 **Critical Issues (5):**
 1. **Prefab scene naming** - 5 files missing `prefab_*` prefix:
@@ -318,28 +318,29 @@ version: "1.0"
    - Expected: `E_CameraRoot` (per templates and guide)
    - `gameplay_base.tscn` correctly uses `E_CameraRoot`
 
-**Medium Severity Issues (9):**
-4. **Spawn point script duplication** - 7 spawn point markers incorrectly have scripts:
-   - Individual `sp_*` nodes should NOT have scripts
-   - Only container `SP_SpawnPoints` should have `spawn_points_group.gd`
-   - Affects all 3 gameplay scenes
-
-5. **Entity container naming** - 3 instances use `E_` prefix incorrectly:
+**Medium Severity Issues (6):**
+4. **Entity container naming** - 3 instances use `E_` prefix incorrectly:
    - `E_Hazards` in exterior and interior (should be `Hazards`)
    - `E_Objectives` in interior (should be `Objectives`)
    - Per guide line 275: only individual entities use `E_` prefix, not containers
 
-6. **UIInputHandler naming** in `root.tscn`:
+5. **UIInputHandler naming** in `root.tscn`:
    - Node name: `UIInputHandler`
    - Expected: `M_UIInputHandler`
    - Matches script naming issue #1 above
 
-7. **Base scene template outdated**:
+6. **Base scene template outdated**:
    - Contains `M_StateStore`, `M_CursorManager` in gameplay scene
    - These now live in `root.tscn` per Phase 2 architecture
    - Template will mislead developers
 
-8. **M_GameplayInitializer inconsistency**:
+**Note on Spawn Point Scripts:**
+- Individual `sp_*` nodes correctly have `spawn_points_group.gd` marker scripts attached
+- This provides editor icons and is the standard pattern for marker scripts
+- NOT a violation - working as intended
+
+**Low Severity Issues (3):**
+7. **M_GameplayInitializer inconsistency**:
    - Present in `gameplay_base.tscn` and `gameplay_exterior.tscn`
    - Missing in `gameplay_interior_house.tscn`
    - Not documented in SCENE_ORGANIZATION_GUIDE.md
@@ -380,7 +381,7 @@ version: "1.0"
 #### Phase 3 Action Items (Prioritized)
 
 **Priority 1 - Breaking Changes (Must Coordinate):**
-- [ ] T035 Refactor `ui_input_handler.gd` → `m_ui_input_handler.gd`:
+- [x] T035 Refactor `ui_input_handler.gd` → `m_ui_input_handler.gd`:
   - Move file from `scripts/ui/` to `scripts/managers/`
   - Update class name: `UIInputHandler` → `M_UIInputHandler`
   - Update all preload() statements and type hints
@@ -390,39 +391,39 @@ version: "1.0"
   - **Impact:** Breaking change, requires thorough testing
 
 **Priority 2 - Non-Breaking Quick Wins:**
-- [ ] T036 Add missing `class_name` declarations to 7 UI controllers:
+- [x] T036 Add missing `class_name` declarations to 7 UI controllers:
   - Safe, non-breaking additions
   - Improves autocomplete and type safety
   - **Estimated Time:** 5 minutes
 
 **Priority 3 - Scene Structure Fixes:**
-- [ ] T037 Rename 5 prefab scenes and consolidate:
+- [x] T037 Rename 5 prefab scenes and consolidate:
   - Move to unified `scenes/prefabs/` directory
   - Add `prefab_*` prefix to all hazard/objective scenes
   - Update all scene references
   - **Estimated Time:** 20-30 minutes
 
-- [ ] T038 Fix spawn point hierarchy in 3 gameplay scenes:
+- [x] T038 Fix spawn point hierarchy in 3 gameplay scenes:
   - Move `SP_SpawnPoints` under `Entities` node
-  - Remove scripts from individual `sp_*` markers
-  - **Estimated Time:** 15 minutes
+  - **Estimated Time:** 10 minutes
+  - **Note:** Individual spawn point marker scripts are correct (for editor icons)
 
-- [ ] T039 Standardize entity naming:
+- [x] T039 Standardize entity naming:
   - Rename `E_Camera` → `E_CameraRoot` in exterior and interior
   - Rename `E_Hazards` → `Hazards`, `E_Objectives` → `Objectives`
   - **Estimated Time:** 10 minutes
 
 **Priority 4 - Documentation Updates:**
-- [ ] T040a Update STYLE_GUIDE.md:
+- [x] T040a Update STYLE_GUIDE.md:
   - Add `analog_stick_repeater.gd` to exceptions table
   - **Estimated Time:** 2 minutes
 
-- [ ] T040b Update SCENE_ORGANIZATION_GUIDE.md:
+- [x] T040b Update SCENE_ORGANIZATION_GUIDE.md:
   - Clarify M_PauseManager location (root.tscn vs gameplay scenes)
   - Document M_GameplayInitializer if standard, or note as experimental
   - **Estimated Time:** 10 minutes
 
-- [ ] T040c Update base scene template:
+- [x] T040c Update base scene template:
   - Remove `M_StateStore`, `M_CursorManager` from template
   - Align with Phase 2 architecture
   - **Estimated Time:** 5 minutes

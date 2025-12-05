@@ -1,5 +1,5 @@
 extends Node
-class_name UIInputHandler
+class_name M_UIInputHandler
 
 ## Thin UI input handler for context-based navigation routing
 ##
@@ -24,7 +24,7 @@ func _ready() -> void:
 	_store = U_StateUtils.get_store(self)
 
 	if _store == null:
-		push_error("UIInputHandler: Failed to find M_StateStore")
+		push_error("M_UIInputHandler: Failed to find M_StateStore")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -77,7 +77,7 @@ func _handle_main_menu_cancel(active_panel: StringName, base_scene_id: StringNam
 	# menu itself. Standalone menu scenes (settings_menu, gamepad_settings,
 	# touchscreen_settings, input_rebinding, etc.) run in the main_menu shell
 	# but manage their own back behavior via BasePanel/_on_back_pressed, so
-	# UIInputHandler must not swallow ui_cancel in those cases.
+	# M_UIInputHandler must not swallow ui_cancel in those cases.
 	if base_scene_id != U_NavigationReducer.SHELL_MAIN_MENU:
 		return
 

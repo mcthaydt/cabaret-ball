@@ -63,6 +63,14 @@ var _expected_component
 var _expected_manager
 var _added_calls := 0
 var _registered_calls := 0
+var _state_store: M_StateStore = null
+
+func before_each() -> void:
+	# Create and add M_StateStore for tests that use BASE_SCENE
+	_state_store = M_StateStore.new()
+	add_child(_state_store)
+	autofree(_state_store)
+	await get_tree().process_frame
 
 func _on_component_added(component_type, received) -> void:
 	_added_calls += 1
