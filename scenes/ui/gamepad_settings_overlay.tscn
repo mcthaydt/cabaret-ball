@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://c5xcj17j871iw" path="res://scripts/ui/gamepad_settings_overlay.gd" id="1"]
 [ext_resource type="Script" uid="uid://bh7yxsksw2bti" path="res://scripts/ui/gamepad_stick_preview.gd" id="2"]
-[ext_resource type="PackedScene" path="res://scenes/ui/button_prompt.tscn" id="3"]
+[ext_resource type="PackedScene" uid="uid://bq8y7b2npl2g0" path="res://scenes/ui/button_prompt.tscn" id="3"]
 
 [node name="GamepadSettingsOverlay" type="Control"]
 layout_mode = 3
@@ -150,9 +150,11 @@ script = ExtResource("2")
 
 [node name="EnterPrompt" parent="CenterContainer/Panel/VBox/StickPreviewContainer" instance=ExtResource("3")]
 unique_name_in_owner = true
+layout_mode = 2
 
 [node name="ExitPrompt" parent="CenterContainer/Panel/VBox/StickPreviewContainer" instance=ExtResource("3")]
 unique_name_in_owner = true
+layout_mode = 2
 
 [node name="ButtonRow" type="HBoxContainer" parent="CenterContainer/Panel/VBox"]
 layout_mode = 2

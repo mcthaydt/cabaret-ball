@@ -18,11 +18,11 @@ If you are ever unsure what to do next, **read the tasks file** and follow the n
 
 ---
 
-## Current Status (2025-12-03 – Phase 0 & 1 Complete)
+## Current Status (2025-12-04 – Phase 0 - 2 Complete)
 
 - **PRD**: `docs/general/cleanup/style-scene-cleanup-prd.md` – Drafted.
 - **Plan**: `docs/general/cleanup/style-scene-cleanup-plan.md` – Phases 0–9 defined with user-approved policies.
-- **Tasks**: `docs/general/cleanup/style-scene-cleanup-tasks.md` – Phase 0 & 1 tasks complete.
+- **Tasks**: `docs/general/cleanup/style-scene-cleanup-tasks.md` – Phase 0 - 2 tasks complete.
 
 **Execution Status**:
 
@@ -38,8 +38,8 @@ If you are ever unsure what to do next, **read the tasks file** and follow the n
   - Updated AGENTS.md with mandatory style/scene test requirement
   - All T010-T017 tasks checked off
 
-- Phase 2 – Responsibility Consolidation (Pause/Cursor): **IN PROGRESS**
-- Phase 3 – Naming & Prefix Migration: **NOT STARTED** (36 files in 5 batches)
+- Phase 2 – Responsibility Consolidation (Pause/Cursor):**✅ COMPLETE**
+- Phase 3 – Naming & Prefix Migration: **IN PROGRESS**
 - Phase 4 – Tests & Tooling Hardening: **NOT STARTED**
 - Phase 5 – Docs & Planning Alignment: **NOT STARTED**
 - Phase 6 – Final Validation & Regression Sweep: **NOT STARTED**

@@ -31,8 +31,8 @@ grow_vertical = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
 unique_name_in_owner = true
-layout_mode = 2
 custom_minimum_size = Vector2(200, 150)
+layout_mode = 2
 alignment = 1
 
 [node name="TitleLabel" type="Label" parent="CenterContainer/VBoxContainer"]

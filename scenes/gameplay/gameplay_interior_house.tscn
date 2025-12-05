@@ -1,4 +1,4 @@
-[gd_scene load_steps=50 format=3 uid="uid://bageed5ytib7"]
+[gd_scene load_steps=49 format=3 uid="uid://bageed5ytib7"]
 
 [ext_resource type="Script" uid="uid://dcqel6tpsbeg5" path="res://scripts/scene_structure/main_root_node.gd" id="1_f2o31"]
 [ext_resource type="Script" uid="uid://bsccsmledbxbs" path="res://scripts/ecs/systems/s_input_system.gd" id="1_pybrx"]

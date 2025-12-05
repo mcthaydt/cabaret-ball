@@ -1,4 +1,4 @@
-[gd_scene load_steps=57 format=3 uid="uid://ctcs7j03knyuf"]
+[gd_scene load_steps=56 format=3 uid="uid://ctcs7j03knyuf"]
 
 [ext_resource type="Script" uid="uid://dcqel6tpsbeg5" path="res://scripts/scene_structure/main_root_node.gd" id="1_f2o31"]
 [ext_resource type="Script" uid="uid://bsccsmledbxbs" path="res://scripts/ecs/systems/s_input_system.gd" id="1_pybrx"]
@@ -295,7 +295,7 @@ texture = ExtResource("39_u0c34")
 [node name="E_TutorialSign" type="Node3D" parent="Entities"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.787005, 1.1897154, -2.5)
 script = ExtResource("45_signpost_controller")
-message = "Welcome to SSA!"
+message = "Welcome to Crispy Template!"
 settings = ExtResource("45_signpost_settings")
 
 [node name="CSGSphere3D" type="CSGSphere3D" parent="Entities/E_TutorialSign"]
